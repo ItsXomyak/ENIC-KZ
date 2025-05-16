@@ -1,0 +1,200 @@
+definitions:
+  auth-service_internal_api_handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  handlers.RequestResetRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  handlers.RequestResetResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.ResetPasswordRequest:
+    properties:
+      newPassword:
+        type: string
+      token:
+        type: string
+    type: object
+  handlers.ResetPasswordResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.ResponseMessage:
+    properties:
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /auth/confirm:
+    get:
+      consumes:
+      - application/json
+      description: Подтверждает email пользователя по токену
+      parameters:
+      - description: Токен подтверждения
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResponseMessage'
+        "400":
+          description: Неверный токен
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      summary: Подтверждение email
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентифицирует пользователя и устанавливает JWT токены в куки
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth-service_internal_api_handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResponseMessage'
+        "400":
+          description: Неверные данные запроса
+          schema:
+            type: string
+        "401":
+          description: Неверные учетные данные
+          schema:
+            type: string
+      summary: Вход в систему
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Выходит из системы и отзывает токены
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResponseMessage'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      summary: Выход из системы
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Обновляет access и refresh токены
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResponseMessage'
+        "401":
+          description: Неверный refresh token
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      summary: Обновление токена
+      tags:
+      - auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Отправляет email со ссылкой для сброса пароля
+      parameters:
+      - description: Email пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RequestResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.RequestResetResponse'
+        "400":
+          description: Неверный email
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      summary: Запрос на сброс пароля
+      tags:
+      - auth
+  /auth/reset-password/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Устанавливает новый пароль по токену сброса
+      parameters:
+      - description: Новый пароль и токен
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResetPasswordResponse'
+        "400":
+          description: Неверный токен или пароль
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      summary: Сброс пароля
+      tags:
+      - auth
+swagger: "2.0"

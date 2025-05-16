@@ -1,0 +1,65 @@
+# Тестирование Auth Service API
+# Базовый URL: http://localhost:8081/api/v1
+
+# 1. Регистрация нового пользователя
+curl -X POST http://localhost:8081/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "itsxomyak@gmail.com",
+    "password": "Test123456!",
+    "displayName": "Test User",
+    "role": "user"
+  }'
+
+# 2. Подтверждение email (замените {token} на реальный токен из письма)
+curl -X GET "http://localhost:8081/api/v1/auth/confirm?token={Kmq6Vj84OIfsq-M6yLgApzL_POxQhVgZOsa_9DISzZs=}"
+
+# 3. Вход в систему (с сохранением куки)
+curl -X POST http://localhost:8081/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "itsxomyak@gmail.com",
+    "password": "Test123456!"
+  }' \
+  -c cookies.txt
+
+# 4. Обновление токена (используем сохраненную куку)
+curl -X POST http://localhost:8081/api/v1/auth/refresh \
+  -b cookies.txt
+
+# 5. Запрос на сброс пароля
+curl -X POST http://localhost:8081/api/v1/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "itsxomyak@gmail.com"
+  }'
+
+# 6. Подтверждение сброса пароля (замените {token} на токен из письма)
+curl -X POST http://localhost:8081/api/v1/auth/reset-password/confirm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "1RJ45F14v0PUQSHtslsbgGwGzMxrGIj1tBM0Exd3SKY=",
+    "newPassword": "NewTest123456!"
+  }'
+
+# 7. Выход из системы (используем сохраненную куку)
+curl -X POST http://localhost:8081/api/v1/auth/logout \
+  -b cookies.txt
+
+# 8. Получение метрик Prometheus
+curl -X GET http://localhost:8081/metrics
+
+# Примечания:
+# 1. Замените {token} на реальные токены, полученные в письмах
+# 2. Замените {refresh_token} на реальный refresh token из куки
+# 3. Все пароли должны соответствовать требованиям безопасности:
+#    - Минимум 8 символов
+#    - Минимум одна заглавная буква
+#    - Минимум одна строчная буква
+#    - Минимум одна цифра
+#    - Минимум один специальный символ
+# 4. Для тестирования защищенных эндпоинтов добавьте заголовок:
+#    -H "Authorization: Bearer {access_token}"
+# 5. Сохраните refresh_token из ответа на запрос логина для последующих запросов
+# 6. Все запросы возвращают JSON с полем "message" в случае успеха
+# 7. В случае ошибки возвращается соответствующий HTTP-статус и сообщение об ошибке 
