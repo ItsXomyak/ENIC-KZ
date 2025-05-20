@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"auth-service/config"
-	"auth-service/internal/logger"
+	"authforge/config"
+	"authforge/internal/logger"
 
 	_ "github.com/lib/pq"
 )

@@ -4,15 +4,13 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/rs/cors"
-
-	"auth-service/config"
-	"auth-service/internal/api/handlers"
-	"auth-service/internal/api/handlers/routes"
-	"auth-service/internal/logger"
-	"auth-service/internal/mailer"
-	"auth-service/internal/repository"
-	"auth-service/internal/services"
+	"authforge/config"
+	"authforge/internal/api/handlers"
+	"authforge/internal/api/handlers/routes"
+	"authforge/internal/logger"
+	"authforge/internal/mailer"
+	"authforge/internal/repository"
+	"authforge/internal/services"
 )
 
 func Run() {
@@ -33,31 +31,19 @@ func Run() {
 	userRepo := repository.NewUserRepository(db)
 	tokenRepo := repository.NewConfirmationTokenRepository(db)
 	passwordResetTokenRepo := repository.NewPasswordResetTokenRepository(db)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+
 	smtpMailer := mailer.NewSMTPMailer(cfg)
 
-	authService := services.NewAuthService(userRepo, tokenRepo, passwordResetTokenRepo, refreshTokenRepo, cfg, smtpMailer)
+	authService := services.NewAuthService(userRepo, tokenRepo, passwordResetTokenRepo, cfg, smtpMailer)
 
-	authHandler := handlers.NewAuthHandler(authService)
+	authHandler := handlers.NewAuthHandler(authService, cfg)
 	confirmHandler := handlers.NewConfirmHandler(authService)
 	passwordResetHandler := handlers.NewPasswordResetHandler(authService)
-	profileHandler := handlers.NewProfileHandler(db)
-	metricsHandler := handlers.NewMetricsHandler()
 
-	router := routes.RegisterRoutes(authHandler, confirmHandler, passwordResetHandler, profileHandler, metricsHandler)
+	routes.RegisterRoutes(authHandler, confirmHandler, passwordResetHandler)
 
-	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://192.168.56.1:3000"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"},
-		ExposedHeaders:   []string{"Content-Length", "Content-Type"},
-		AllowCredentials: true,
-		MaxAge:           86400, // 24 часа
-		Debug:            true, 
-	}).Handler(router)
-
-	logger.Info("Server starting on port: ", cfg.ServerPort)
-	if err := http.ListenAndServe(":"+cfg.ServerPort, corsHandler); err != nil {
+	logger.Info("Server starting on port ", cfg.ServerPort)
+	if err := http.ListenAndServe(":"+cfg.ServerPort, nil); err != nil {
 		logger.Error("Server failed: ", err)
 		log.Fatalf("Server failed: %v", err)
 	}

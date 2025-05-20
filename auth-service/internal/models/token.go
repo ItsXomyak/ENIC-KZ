@@ -22,15 +22,3 @@ type PasswordResetToken struct {
 	CreatedAt time.Time `json:"createdAt" db:"created_at"`
 	Used      bool      `json:"used" db:"used"`
 }
-
-// RefreshToken представляет модель токена обновления
-// @Description Информация о токене обновления
-type RefreshToken struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	UserID    uuid.UUID `json:"userId" db:"user_id"`
-	Token     string    `json:"token" db:"token"`
-	ExpiresAt time.Time `json:"expiresAt" db:"expires_at"`
-	IsRevoked bool      `json:"isRevoked" db:"is_revoked"`
-	CreatedAt time.Time `json:"createdAt" db:"created_at"`
-	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
-}

@@ -4,25 +4,22 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"auth-service/config"
-	"auth-service/internal/logger"
-	"auth-service/internal/mailer"
-	"auth-service/internal/models"
-	"auth-service/internal/repository"
+	"authforge/config"
+	"authforge/internal/logger"
+	"authforge/internal/mailer"
+	"authforge/internal/models"
+	"authforge/internal/repository"
 )
 
 type AuthService interface {
 	RegisterUser(user *models.User, password string) error
-	Login(email, password string, w http.ResponseWriter) error
-	Logout(w http.ResponseWriter, refreshToken string) error
-	RefreshToken(refreshToken string, w http.ResponseWriter) error
+	Login(email, password string) (*TokenPair, error)
 	ConfirmAccount(tokenString string) error
 	RequestPasswordReset(email string) error
 	ResetPassword(token, newPassword string) error
@@ -33,16 +30,19 @@ type authService struct {
 	userRepo               repository.UserRepository
 	tokenRepo              repository.ConfirmationTokenRepository
 	passwordResetTokenRepo repository.PasswordResetTokenRepository
-	refreshTokenRepo       repository.RefreshTokenRepository
 	cfg                    *config.Config
 	mailer                 mailer.Mailer
+}
+
+type TokenPair struct {
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 func NewAuthService(
 	userRepo repository.UserRepository,
 	tokenRepo repository.ConfirmationTokenRepository,
 	passwordResetTokenRepo repository.PasswordResetTokenRepository,
-	refreshTokenRepo repository.RefreshTokenRepository,
 	cfg *config.Config,
 	m mailer.Mailer,
 ) AuthService {
@@ -51,7 +51,6 @@ func NewAuthService(
 		userRepo:               userRepo,
 		tokenRepo:              tokenRepo,
 		passwordResetTokenRepo: passwordResetTokenRepo,
-		refreshTokenRepo:       refreshTokenRepo,
 		cfg:                    cfg,
 		mailer:                 m,
 	}
@@ -89,11 +88,6 @@ func (s *authService) RegisterUser(user *models.User, password string) error {
 		return err
 	}
 
-	if err := s.userRepo.CreateUserProfile(user.ID); err != nil {
-		logger.Error("Error creating profile for user ", user.Email, ": ", err)
-		// Не прерываем регистрацию, но логируем
-	}
-
 	confirmationToken, err := generateRandomToken(32)
 	if err != nil {
 		logger.Error("Error generating confirmation token: ", err)
@@ -119,159 +113,38 @@ func (s *authService) RegisterUser(user *models.User, password string) error {
 	return nil
 }
 
-func (s *authService) setAuthCookies(w http.ResponseWriter, accessToken, refreshToken string) {
-	// Устанавливаем access token в httpOnly куку
-	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   int(s.cfg.JWTExpiry.Seconds()),
-	})
-
-	// Устанавливаем refresh token в httpOnly куку
-	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   int(s.cfg.RefreshExpiry.Seconds()),
-	})
-}
-
-func (s *authService) clearAuthCookies(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   -1,
-	})
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   -1,
-	})
-}
-
-func (s *authService) Login(email, password string, w http.ResponseWriter) error {
+func (s *authService) Login(email, password string) (*TokenPair, error) {
 	user, err := s.userRepo.GetUserByEmail(email)
 	if err != nil {
-		return errors.New("invalid credentials")
+		logger.Error("Login failed, user not found: ", email)
+		return nil, errors.New("invalid credentials")
 	}
 
 	if !user.IsActive {
-		return errors.New("account not activated")
+		logger.Error("Login failed, account not activated: ", email)
+		return nil, errors.New("account not activated")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return errors.New("invalid credentials")
+		logger.Error("Login failed, invalid credentials for: ", email)
+		return nil, errors.New("invalid credentials")
 	}
 
-	// Генерируем токены
 	accessToken, err := s.generateJWTToken(user, s.cfg.JWTExpiry)
 	if err != nil {
-		return err
+		logger.Error("Error generating access token for ", email, ": ", err)
+		return nil, err
 	}
 
-	refreshToken, err := s.generateRefreshToken(user)
+	refreshToken, err := s.generateJWTToken(user, s.cfg.RefreshExpiry)
 	if err != nil {
-		return err
+		logger.Error("Error generating refresh token for ", email, ": ", err)
+		return nil, err
 	}
-
-	// Сохраняем refresh token в БД
-	refreshTokenModel := &models.RefreshToken{
-		ID:        uuid.New(),
-		UserID:    user.ID,
-		Token:     refreshToken,
-		ExpiresAt: time.Now().Add(s.cfg.RefreshExpiry),
-	}
-
-	if err := s.refreshTokenRepo.CreateToken(refreshTokenModel); err != nil {
-		return err
-	}
-
-	// Устанавливаем куки
-	s.setAuthCookies(w, accessToken, refreshToken)
-
-	return nil
-}
-
-func (s *authService) Logout(w http.ResponseWriter, refreshToken string) error {
-	if refreshToken != "" {
-		if err := s.refreshTokenRepo.RevokeToken(refreshToken); err != nil {
-			logger.Error("Error revoking refresh token: ", err)
-		}
-	}
-
-	s.clearAuthCookies(w)
-	return nil
-}
-
-func (s *authService) RefreshToken(refreshToken string, w http.ResponseWriter) error {
-	// Проверяем refresh token в БД
-	token, err := s.refreshTokenRepo.GetToken(refreshToken)
-	if err != nil {
-		return errors.New("invalid refresh token")
-	}
-
-	// Получаем пользователя
-	user, err := s.userRepo.GetUserByID(token.UserID)
-	if err != nil {
-		return errors.New("user not found")
-	}
-
-	// Генерируем новые токены
-	accessToken, err := s.generateJWTToken(user, s.cfg.JWTExpiry)
-	if err != nil {
-		return err
-	}
-
-	newRefreshToken, err := s.generateRefreshToken(user)
-	if err != nil {
-		return err
-	}
-
-	// Сохраняем новый refresh token
-	newToken := &models.RefreshToken{
-		ID:        uuid.New(),
-		UserID:    user.ID,
-		Token:     newRefreshToken,
-		ExpiresAt: time.Now().Add(s.cfg.RefreshExpiry),
-	}
-
-	if err := s.refreshTokenRepo.CreateToken(newToken); err != nil {
-		return err
-	}
-
-	// Отзываем старый refresh token
-	if err := s.refreshTokenRepo.RevokeToken(refreshToken); err != nil {
-		logger.Error("Error revoking old refresh token: ", err)
-	}
-
-	// Устанавливаем новые куки
-	s.setAuthCookies(w, accessToken, newRefreshToken)
-
-	return nil
-}
-
-func (s *authService) generateRefreshToken(user *models.User) (string, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(b), nil
+	return &TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 func (s *authService) generateJWTToken(user *models.User, expiry time.Duration) (string, error) {

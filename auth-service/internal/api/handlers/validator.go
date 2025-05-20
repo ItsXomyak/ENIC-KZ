@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"auth-service/internal/logger"
-	"auth-service/internal/services"
+	"authforge/config"
+	"authforge/internal/services"
 	"encoding/json"
 	"net/http"
-	"strings"
 )
 
 type ValidateHandler struct {
@@ -13,31 +12,20 @@ type ValidateHandler struct {
 }
 
 func (h *AuthHandler) ValidateToken(w http.ResponseWriter, r *http.Request) {
-	logger.Info("Token validation request received")
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
+	accessCookie, err := r.Cookie(config.AccessTokenCookieName)
+	if err != nil {
 		http.Error(w, "missing token", http.StatusUnauthorized)
 		return
 	}
-
-	const prefix = "Bearer "
-	if !strings.HasPrefix(authHeader, prefix) {
-		http.Error(w, "invalid token format", http.StatusUnauthorized)
-		return
-	}
-	tokenStr := strings.TrimSpace(authHeader[len(prefix):])
-
+	tokenStr := accessCookie.Value
 	claims, err := h.AuthService.ValidateToken(tokenStr)
 	if err != nil {
 		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
-
-	response := map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"user_id":   claims.UserID,
 		"role":      claims.Role,
 		"expiresAt": claims.ExpiresAt.Time,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }

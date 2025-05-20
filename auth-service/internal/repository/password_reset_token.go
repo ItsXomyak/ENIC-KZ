@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
-	"auth-service/internal/logger"
-	"auth-service/internal/models"
+	"authforge/internal/logger"
+	"authforge/internal/models"
 )
 
 type PasswordResetTokenRepository interface {

@@ -1,6 +1,6 @@
 package main
 
-import "auth-service/cmd"
+import "authforge/cmd"
 
 func main() {
 	cmd.Run()

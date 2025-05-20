@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"auth-service/internal/logger"
-	"auth-service/internal/services"
+	"authforge/internal/logger"
+	"authforge/internal/services"
 )
 
 type PasswordResetHandler struct {
@@ -26,16 +26,6 @@ type RequestResetResponse struct {
 	Message string `json:"message"`
 }
 
-// @Summary Запрос на сброс пароля
-// @Description Отправляет email со ссылкой для сброса пароля
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body RequestResetRequest true "Email пользователя"
-// @Success 200 {object} RequestResetResponse
-// @Failure 400 {string} string "Неверный email"
-// @Failure 500 {string} string "Внутренняя ошибка сервера"
-// @Router /auth/reset-password [post]
 func (h *PasswordResetHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Password reset request received")
 	var req RequestResetRequest
@@ -75,16 +65,6 @@ type ResetPasswordResponse struct {
 	Message string `json:"message"`
 }
 
-// @Summary Сброс пароля
-// @Description Устанавливает новый пароль по токену сброса
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body ResetPasswordRequest true "Новый пароль и токен"
-// @Success 200 {object} ResetPasswordResponse
-// @Failure 400 {string} string "Неверный токен или пароль"
-// @Failure 500 {string} string "Внутренняя ошибка сервера"
-// @Router /auth/reset-password/confirm [post]
 func (h *PasswordResetHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Reset password request received")
 	var req ResetPasswordRequest

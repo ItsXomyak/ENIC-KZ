@@ -14,13 +14,6 @@ type DatabaseConfig struct {
 	DBName   string
 }
 
-type SecurityConfig struct {
-	MaxLoginAttempts int
-	LockoutDuration  time.Duration
-	PasswordMinLength int
-	RequireTwoFactor bool
-}
-
 type Config struct {
 	ServerPort    string
 	Database      DatabaseConfig
@@ -31,7 +24,6 @@ type Config struct {
 	JWTSecret     string
 	JWTExpiry     time.Duration
 	RefreshExpiry time.Duration
-	Security      SecurityConfig
 }
 
 func LoadConfig(path string) (*Config, error) {
@@ -42,17 +34,11 @@ func LoadConfig(path string) (*Config, error) {
 	viper.SetDefault("DB_PORT", 5432)
 	viper.SetDefault("DB_USER", "postgres")
 	viper.SetDefault("DB_PASSWORD", "12345678")
-	viper.SetDefault("DB_NAME", "auth-service")
+	viper.SetDefault("DB_NAME", "authforge")
 
 	viper.SetDefault("SERVER_PORT", "8080")
 	viper.SetDefault("JWT_EXPIRY", "24h")
 	viper.SetDefault("REFRESH_EXPIRY", "168h")
-
-	// Настройки безопасности
-	viper.SetDefault("MAX_LOGIN_ATTEMPTS", 5)
-	viper.SetDefault("LOCKOUT_DURATION", "15m")
-	viper.SetDefault("PASSWORD_MIN_LENGTH", 8)
-	viper.SetDefault("REQUIRE_TWO_FACTOR", false)
 
 	if err := viper.ReadInConfig(); err != nil {
 	}
@@ -73,12 +59,6 @@ func LoadConfig(path string) (*Config, error) {
 		JWTSecret:     viper.GetString("JWT_SECRET"),
 		JWTExpiry:     viper.GetDuration("JWT_EXPIRY"),
 		RefreshExpiry: viper.GetDuration("REFRESH_EXPIRY"),
-		Security: SecurityConfig{
-			MaxLoginAttempts: viper.GetInt("MAX_LOGIN_ATTEMPTS"),
-			LockoutDuration:  viper.GetDuration("LOCKOUT_DURATION"),
-			PasswordMinLength: viper.GetInt("PASSWORD_MIN_LENGTH"),
-			RequireTwoFactor: viper.GetBool("REQUIRE_TWO_FACTOR"),
-		},
 	}
 	return cfg, nil
 }
