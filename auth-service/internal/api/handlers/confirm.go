@@ -18,6 +18,15 @@ func NewConfirmHandler(authService services.AuthService) *ConfirmHandler {
 	}
 }
 
+// ConfirmAccount godoc
+// @Summary Confirm user account
+// @Description Activates user account by confirmation token from query
+// @Tags auth
+// @Produce json
+// @Param token query string true "Confirmation token"
+// @Success 200 {object} map[string]string
+// @Failure 400 {string} string "Invalid or expired token"
+// @Router /auth/confirm [get]
 func (h *ConfirmHandler) ConfirmAccount(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Confirm account request received")
 	token := r.URL.Query().Get("token")

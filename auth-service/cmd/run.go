@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"authforge/config"
+	_ "authforge/docs"
 	"authforge/internal/api/handlers"
 	"authforge/internal/api/handlers/routes"
 	"authforge/internal/logger"

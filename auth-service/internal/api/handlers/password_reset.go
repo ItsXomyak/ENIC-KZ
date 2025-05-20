@@ -26,6 +26,16 @@ type RequestResetResponse struct {
 	Message string `json:"message"`
 }
 
+// RequestPasswordReset godoc
+// @Summary Request password reset
+// @Description Sends password reset instructions to email
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body RequestResetRequest true "Email address"
+// @Success 200 {object} RequestResetResponse
+// @Failure 400 {string} string "Invalid request"
+// @Router /auth/password-reset-request [post]
 func (h *PasswordResetHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Password reset request received")
 	var req RequestResetRequest
@@ -65,6 +75,16 @@ type ResetPasswordResponse struct {
 	Message string `json:"message"`
 }
 
+// ResetPassword godoc
+// @Summary Reset password
+// @Description Resets password using provided token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body ResetPasswordRequest true "Reset token and new password"
+// @Success 200 {object} ResetPasswordResponse
+// @Failure 400 {string} string "Invalid or expired token"
+// @Router /auth/password-reset-confirm [post]
 func (h *PasswordResetHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Reset password request received")
 	var req ResetPasswordRequest

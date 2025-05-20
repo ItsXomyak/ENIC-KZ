@@ -33,6 +33,17 @@ type ResponseMessage struct {
 	Message string `json:"message"`
 }
 
+// Register godoc
+// @Summary Register a new user
+// @Description Creates a new user account and sends confirmation email
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body RegisterRequest true "User credentials"
+// @Success 200 {object} ResponseMessage
+// @Failure 400 {string} string "Invalid input"
+// @Failure 500 {string} string "Internal error"
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Registration request received")
 	var req RegisterRequest
@@ -74,6 +85,17 @@ type LoginResponse struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
+// Login godoc
+// @Summary Log in a user
+// @Description Authenticates user and sets access and refresh JWT cookies
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body LoginRequest true "Email and password"
+// @Success 200 {object} ResponseMessage
+// @Failure 400 {string} string "Invalid input"
+// @Failure 401 {string} string "Unauthorized"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Login request received")
 	var req LoginRequest
@@ -95,7 +117,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// внутри AuthHandler.Login, после генерации tokens:
 	http.SetCookie(w, &http.Cookie{
 		Name:     config.AccessTokenCookieName,
 		Value:    tokens.AccessToken,

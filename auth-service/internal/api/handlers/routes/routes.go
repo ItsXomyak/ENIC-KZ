@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"authforge/internal/api/handlers"
+
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func RegisterRoutes(
@@ -20,4 +22,5 @@ func RegisterRoutes(
 		"/api/v1/auth/validate",
 		handlers.AuthMiddleware(authHandler.AuthService)(authHandler.ValidateToken),
 	)
+	http.Handle("/swagger/", httpSwagger.WrapHandler)
 }

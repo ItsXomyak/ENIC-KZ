@@ -11,6 +11,14 @@ type ValidateHandler struct {
 	AuthService services.AuthService
 }
 
+// ValidateToken godoc
+// @Summary Validate JWT token from cookie
+// @Description Returns user claims if token is valid
+// @Tags auth
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {string} string "Unauthorized"
+// @Router /auth/validate [get]
 func (h *AuthHandler) ValidateToken(w http.ResponseWriter, r *http.Request) {
 	accessCookie, err := r.Cookie(config.AccessTokenCookieName)
 	if err != nil {

@@ -9,14 +9,10 @@ import (
 	"authforge/internal/services"
 )
 
-// ContextKey – тип для ключей в контексте
 type ContextKey string
 
-// ContextKeyClaims – ключ, под которым мы положим CustomClaims
 const ContextKeyClaims ContextKey = "claims"
 
-// AuthMiddleware возвращает обёртку над http.HandlerFunc
-// которая проверяет JWT в cookie и добавляет claims в контекст.
 func AuthMiddleware(authSvc services.AuthService) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -33,14 +29,12 @@ func AuthMiddleware(authSvc services.AuthService) func(http.HandlerFunc) http.Ha
 				return
 			}
 
-			// Кладём claims в контекст
 			ctx := context.WithValue(r.Context(), ContextKeyClaims, claims)
 			next(w, r.WithContext(ctx))
 		}
 	}
 }
 
-// FromContext возвращает CustomClaims, если они были положены в контекст
 func FromContext(ctx context.Context) (*models.CustomClaims, bool) {
 	claims, ok := ctx.Value(ContextKeyClaims).(*models.CustomClaims)
 	return claims, ok
