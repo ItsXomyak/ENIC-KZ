@@ -30,3 +30,12 @@ CREATE TABLE IF NOT EXISTS news_translations (
 CREATE INDEX IF NOT EXISTS idx_news_publish_date ON news(publish_date);
 CREATE INDEX IF NOT EXISTS idx_news_category ON news(category_id);
 CREATE INDEX IF NOT EXISTS idx_translations_lang ON news_translations(lang);
+
+INSERT INTO news_categories (code, name) VALUES
+  ('events',              'События'),
+  ('cooperation',         'Международное сотрудничество'),
+  ('education',           'Обучение'),
+  ('press_release',       'Пресс-релиз'),
+  ('announcements',       'Объявления'),
+  ('notifications',       'Уведомления');
+

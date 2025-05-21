@@ -27,5 +27,5 @@ func InitRedis(cfg *config.Config) {
 		return
 	}
 
-	logger.Info("connected to Redis at", cfg.RedisAddr)
+	logger.Info("connected to Redis at ", cfg.RedisAddr)
 }
