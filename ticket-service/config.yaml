@@ -1,7 +1,6 @@
 server:
   port: ':8080'
-  read_timeout: 5s
-  write_timeout: 5s
+  shutdown_timeout: 10s
 
 database:
   host: 'localhost'
@@ -18,7 +17,7 @@ redis:
   db: 0
 
 s3:
-  endpoint: 'localhost:9000'
+  endpoint: 'http://localhost:9000'
   access_key_id: 'minioadmin'
   secret_access_key: 'minioadmin'
   bucket_name: 'tickets'
@@ -26,5 +25,12 @@ s3:
   use_ssl: false
 
 clamav:
-  address: 'localhost:3310'
-  timeout: '30s'
+  host: 'localhost'
+  port: '3310'
+
+captcha:
+  secret_key: 'your-recaptcha-secret-key'
+  min_score: 0.5
+
+auth:
+  jwt_secret: 'your-jwt-secret-key'
