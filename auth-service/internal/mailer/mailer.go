@@ -11,6 +11,7 @@ import (
 type Mailer interface {
 	SendConfirmationEmail(to, token string) error
 	SendPasswordResetEmail(to, token string) error
+	Send2FACodeEmail(to, code string) error
 }
 
 type smtpMailer struct {
@@ -73,6 +74,19 @@ func (m *smtpMailer) sendMail(to, subject, body string) error {
 	err := smtp.SendMail(addr, auth, from, []string{to}, msg)
 	if err != nil {
 		logger.Error("SMTP SendMail error: ", err)
+	}
+	return err
+}
+
+func (m *smtpMailer) Send2FACodeEmail(to, code string) error {
+	subject := "Your 2FA Code"
+	body := fmt.Sprintf("Your 2FA code is: %s\nThis code expires in 10 minutes.", code)
+	logger.Info("Sending 2FA code email to ", to)
+	err := m.sendMail(to, subject, body)
+	if err != nil {
+		logger.Error("Error sending 2FA code email to ", to, ": ", err)
+	} else {
+		logger.Info("2FA code email sent to ", to)
 	}
 	return err
 }

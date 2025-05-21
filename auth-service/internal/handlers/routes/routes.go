@@ -3,7 +3,7 @@ package routes
 import (
 	"net/http"
 
-	"authforge/internal/api/handlers"
+	"authforge/internal/handlers"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -18,6 +18,7 @@ func RegisterRoutes(
 	http.HandleFunc("/api/v1/auth/confirm", confirmHandler.ConfirmAccount)
 	http.HandleFunc("/api/v1/auth/password-reset-request", passwordResetHandler.RequestPasswordReset)
 	http.HandleFunc("/api/v1/auth/password-reset-confirm", passwordResetHandler.ResetPassword)
+	http.HandleFunc("/api/v1/auth/verify-2fa", authHandler.Verify2FA)
 	http.HandleFunc(
 		"/api/v1/auth/validate",
 		handlers.AuthMiddleware(authHandler.AuthService)(authHandler.ValidateToken),

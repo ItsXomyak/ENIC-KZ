@@ -29,13 +29,13 @@ func NewUserRepository(db *sql.DB) UserRepository {
 func (r *PostgresUserRepository) CreateUser(user *models.User) error {
 	query := `
 		INSERT INTO users (
-			id, email, password_hash, is_active, role,
+			id, email, password_hash, is_active, is_2fa_enabled, role,
 			created_at, updated_at, failed_login_attempts, last_failed_login
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
 	now := time.Now()
-	user.ID = uuid.New() // ✅ явно создаём UUID
+	user.ID = uuid.New()
 	user.CreatedAt = now
 	user.UpdatedAt = now
 
@@ -44,6 +44,7 @@ func (r *PostgresUserRepository) CreateUser(user *models.User) error {
 		user.Email,
 		user.PasswordHash,
 		user.IsActive,
+		user.Is2FAEnabled,
 		user.Role,
 		user.CreatedAt,
 		user.UpdatedAt,
@@ -59,7 +60,7 @@ func (r *PostgresUserRepository) CreateUser(user *models.User) error {
 
 func (r *PostgresUserRepository) GetUserByEmail(email string) (*models.User, error) {
 	query := `
-		SELECT id, email, password_hash, is_active, role, created_at, updated_at, failed_login_attempts, last_failed_login
+		SELECT id, email, password_hash, is_active, is_2fa_enabled, role, created_at, updated_at, failed_login_attempts, last_failed_login
 		FROM users WHERE email = $1`
 	user := &models.User{}
 	err := r.DB.QueryRow(query, email).Scan(
@@ -67,6 +68,7 @@ func (r *PostgresUserRepository) GetUserByEmail(email string) (*models.User, err
 		&user.Email,
 		&user.PasswordHash,
 		&user.IsActive,
+		&user.Is2FAEnabled,
 		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -86,7 +88,7 @@ func (r *PostgresUserRepository) GetUserByEmail(email string) (*models.User, err
 
 func (r *PostgresUserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 	query := `
-		SELECT id, email, password_hash, is_active, role, created_at, updated_at, failed_login_attempts, last_failed_login
+		SELECT id, email, password_hash, is_active, is_2fa_enabled,  role, created_at, updated_at, failed_login_attempts, last_failed_login
 		FROM users WHERE id = $1`
 	user := &models.User{}
 	err := r.DB.QueryRow(query, id).Scan(
@@ -94,6 +96,7 @@ func (r *PostgresUserRepository) GetUserByID(id uuid.UUID) (*models.User, error)
 		&user.Email,
 		&user.PasswordHash,
 		&user.IsActive,
+		&user.Is2FAEnabled,
 		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -114,19 +117,30 @@ func (r *PostgresUserRepository) GetUserByID(id uuid.UUID) (*models.User, error)
 func (r *PostgresUserRepository) UpdateUser(user *models.User) error {
 	query := `
 		UPDATE users 
-		SET email = $1, password_hash = $2, is_active = $3, role = $4, updated_at = $5, failed_login_attempts = $6, last_failed_login = $7
-		WHERE id = $8`
+		SET email = $1,
+		    password_hash = $2,
+		    is_active = $3,
+		    is_2fa_enabled = $4,
+		    role = $5,
+		    updated_at = $6,
+		    failed_login_attempts = $7,
+		    last_failed_login = $8
+		WHERE id = $9`
+
 	user.UpdatedAt = time.Now()
+
 	_, err := r.DB.Exec(query,
 		user.Email,
 		user.PasswordHash,
 		user.IsActive,
+		user.Is2FAEnabled,
 		user.Role,
 		user.UpdatedAt,
 		user.FailedLoginAttempts,
 		user.LastFailedLogin,
 		user.ID,
 	)
+
 	if err != nil {
 		logger.Error("Error updating user with ID ", user.ID, ": ", err)
 	}

@@ -6,8 +6,8 @@ import (
 
 	"authforge/config"
 	_ "authforge/docs"
-	"authforge/internal/api/handlers"
-	"authforge/internal/api/handlers/routes"
+	"authforge/internal/handlers"
+	"authforge/internal/handlers/routes"
 	"authforge/internal/logger"
 	"authforge/internal/mailer"
 	"authforge/internal/repository"
@@ -32,10 +32,11 @@ func Run() {
 	userRepo := repository.NewUserRepository(db)
 	tokenRepo := repository.NewConfirmationTokenRepository(db)
 	passwordResetTokenRepo := repository.NewPasswordResetTokenRepository(db)
+	admin2FATokenRepo := repository.NewAdmin2FATokenRepository(db)
 
 	smtpMailer := mailer.NewSMTPMailer(cfg)
 
-	authService := services.NewAuthService(userRepo, tokenRepo, passwordResetTokenRepo, cfg, smtpMailer)
+	authService := services.NewAuthService(userRepo, tokenRepo, passwordResetTokenRepo, admin2FATokenRepo, cfg, smtpMailer)
 
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	confirmHandler := handlers.NewConfirmHandler(authService)

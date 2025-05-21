@@ -1,8 +1,6 @@
 package services
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"time"
 
@@ -17,6 +15,8 @@ import (
 	"authforge/internal/repository"
 )
 
+var Err2FARequired = errors.New("2fa_required")
+
 type AuthService interface {
 	RegisterUser(user *models.User, password string) error
 	Login(email, password string) (*TokenPair, error)
@@ -24,12 +24,14 @@ type AuthService interface {
 	RequestPasswordReset(email string) error
 	ResetPassword(token, newPassword string) error
 	ValidateToken(tokenString string) (*models.CustomClaims, error)
+	Verify2FAByEmail(email, code string) (*TokenPair, error)
 }
 
 type authService struct {
 	userRepo               repository.UserRepository
 	tokenRepo              repository.ConfirmationTokenRepository
 	passwordResetTokenRepo repository.PasswordResetTokenRepository
+	admin2faTokenRepo      repository.Admin2FATokenRepository
 	cfg                    *config.Config
 	mailer                 mailer.Mailer
 }
@@ -43,14 +45,15 @@ func NewAuthService(
 	userRepo repository.UserRepository,
 	tokenRepo repository.ConfirmationTokenRepository,
 	passwordResetTokenRepo repository.PasswordResetTokenRepository,
+	admin2faTokenRepo repository.Admin2FATokenRepository,
 	cfg *config.Config,
 	m mailer.Mailer,
 ) AuthService {
-	logger.Info("Initializing AuthService")
 	return &authService{
 		userRepo:               userRepo,
 		tokenRepo:              tokenRepo,
 		passwordResetTokenRepo: passwordResetTokenRepo,
+		admin2faTokenRepo:      admin2faTokenRepo,
 		cfg:                    cfg,
 		mailer:                 m,
 	}
@@ -74,6 +77,12 @@ func (s *authService) RegisterUser(user *models.User, password string) error {
 
 	if user.Role == "" {
 		user.Role = "user"
+	}
+
+	if user.Role == models.RoleAdmin {
+		user.Is2FAEnabled = true
+	} else {
+		user.Is2FAEnabled = false
 	}
 
 	if user.Role != models.RoleUser && user.Role != models.RoleAdmin {
@@ -130,12 +139,28 @@ func (s *authService) Login(email, password string) (*TokenPair, error) {
 		return nil, errors.New("invalid credentials")
 	}
 
+	if user.Role == models.RoleAdmin && user.Is2FAEnabled {
+		code := generate2FACode()
+		tokenModel := &models.Admin2FAToken{
+			UserID:    user.ID,
+			Code:      code,
+			ExpiresAt: time.Now().Add(10 * time.Minute),
+		}
+		if err := s.admin2faTokenRepo.Create(tokenModel); err != nil {
+			logger.Error("Error creating 2FA token for admin: ", err)
+			return nil, err
+		}
+		if err := s.mailer.Send2FACodeEmail(user.Email, code); err != nil {
+			logger.Error("Error sending 2FA code email to ", user.Email, ": ", err)
+			return nil, err
+		}
+		return nil, Err2FARequired
+	}
 	accessToken, err := s.generateJWTToken(user, s.cfg.JWTExpiry)
 	if err != nil {
 		logger.Error("Error generating access token for ", email, ": ", err)
 		return nil, err
 	}
-
 	refreshToken, err := s.generateJWTToken(user, s.cfg.RefreshExpiry)
 	if err != nil {
 		logger.Error("Error generating refresh token for ", email, ": ", err)
@@ -160,15 +185,6 @@ func (s *authService) generateJWTToken(user *models.User, expiry time.Duration) 
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.cfg.JWTSecret))
-}
-
-func generateRandomToken(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		logger.Error("Error generating random bytes: ", err)
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 func (s *authService) ConfirmAccount(tokenString string) error {
@@ -299,4 +315,34 @@ func (s *authService) ValidateToken(tokenString string) (*models.CustomClaims, e
 	}
 
 	return claims, nil
+}
+
+func (s *authService) Verify2FAByEmail(email, code string) (*TokenPair, error) {
+	user, err := s.userRepo.GetUserByEmail(email)
+	if err != nil {
+		logger.Error("2FA: user not found: ", email, ": ", err)
+		return nil, errors.New("invalid credentials")
+	}
+
+	valid, err := s.admin2faTokenRepo.Validate(user.ID.String(), code)
+	if err != nil {
+		logger.Error("2FA validation error for ", email, ": ", err)
+		return nil, errors.New("internal error")
+	}
+	if !valid {
+		logger.Error("2FA: invalid or expired code for ", email)
+		return nil, errors.New("invalid or expired code")
+	}
+
+	accessToken, err := s.generateJWTToken(user, s.cfg.JWTExpiry)
+	if err != nil {
+		logger.Error("2FA: error generating access token for ", email, ": ", err)
+		return nil, err
+	}
+	refreshToken, err := s.generateJWTToken(user, s.cfg.RefreshExpiry)
+	if err != nil {
+		logger.Error("2FA: error generating refresh token for ", email, ": ", err)
+		return nil, err
+	}
+	return &TokenPair{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }

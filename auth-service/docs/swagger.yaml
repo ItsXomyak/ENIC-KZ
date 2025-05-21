@@ -43,6 +43,13 @@ definitions:
       message:
         type: string
     type: object
+  handlers.Verify2FARequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -203,6 +210,36 @@ paths:
           schema:
             type: string
       summary: Validate JWT token from cookie
+      tags:
+      - auth
+  /auth/verify-2fa:
+    post:
+      consumes:
+      - application/json
+      description: Checks a 2FA code and, if valid, issues JWT cookies
+      parameters:
+      - description: Email and 2FA code
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.Verify2FARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResponseMessage'
+        "400":
+          description: Invalid or expired code
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Verify 2FA code for admin
       tags:
       - auth
 swagger: "2.0"
