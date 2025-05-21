@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"io"
+	_ "news-service/docs"
 	"news-service/internal/cache"
 	"news-service/internal/config"
 	"news-service/internal/handler"
@@ -11,6 +12,8 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func Run() {
@@ -33,6 +36,7 @@ func Run() {
 
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	newsRepo := repository.NewNewsRepo(repository.DB, cache.Rdb)
 	newsService := service.NewNewsService(newsRepo)

@@ -1,0 +1,208 @@
+basePath: /
+definitions:
+  models.News:
+    properties:
+      category_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: string
+      publish_date:
+        type: string
+      translations:
+        items:
+          $ref: '#/definitions/models.NewsTranslation'
+        type: array
+    type: object
+  models.NewsTranslation:
+    properties:
+      content:
+        type: string
+      id:
+        type: integer
+      lang:
+        description: '"kz", "ru", "en"'
+        type: string
+      news_id:
+        type: string
+      title:
+        type: string
+    type: object
+host: localhost:8081
+info:
+  contact: {}
+  description: Документация для API сервиса новостей ENIC
+  title: News Service API
+  version: "1.0"
+paths:
+  /news:
+    get:
+      consumes:
+      - application/json
+      description: 'Возвращает список новостей с поддержкой фильтров: категория, дата,
+        пагинация.'
+      parameters:
+      - description: Код категории (например, general, education)
+        in: query
+        name: category
+        type: string
+      - description: 'Начальная дата публикации (формат: YYYY-MM-DD)'
+        in: query
+        name: from
+        type: string
+      - description: 'Конечная дата публикации (формат: YYYY-MM-DD)'
+        in: query
+        name: to
+        type: string
+      - description: Максимальное количество новостей (по умолчанию 10)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение от начала (по умолчанию 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.News'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить список новостей
+      tags:
+      - news
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новую новость с переводами и категорией
+      parameters:
+      - description: Данные новости
+        in: body
+        name: news
+        required: true
+        schema:
+          $ref: '#/definitions/models.News'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.News'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать новость
+      tags:
+      - news
+  /news/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет новость по её UUID
+      parameters:
+      - description: UUID новости
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить новость
+      tags:
+      - news
+    get:
+      consumes:
+      - application/json
+      description: Возвращает одну новость по её UUID
+      parameters:
+      - description: UUID новости
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.News'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить новость по ID
+      tags:
+      - news
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующую новость по её ID
+      parameters:
+      - description: UUID новости
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Обновлённые данные новости
+        in: body
+        name: news
+        required: true
+        schema:
+          $ref: '#/definitions/models.News'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.News'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновить новость
+      tags:
+      - news
+swagger: "2.0"

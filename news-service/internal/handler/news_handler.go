@@ -17,6 +17,20 @@ type NewsHandler struct {
 	service service.NewsService
 }
 
+// GetAll godoc
+// @Summary      Получить список новостей
+// @Description  Возвращает список новостей с поддержкой фильтров: категория, дата, пагинация.
+// @Tags         news
+// @Accept       json
+// @Produce      json
+// @Param        category  query     string  false  "Код категории (например, general, education)"
+// @Param        from      query     string  false  "Начальная дата публикации (формат: YYYY-MM-DD)"
+// @Param        to        query     string  false  "Конечная дата публикации (формат: YYYY-MM-DD)"
+// @Param        limit     query     int     false  "Максимальное количество новостей (по умолчанию 10)"
+// @Param        offset    query     int     false  "Смещение от начала (по умолчанию 0)"
+// @Success      200       {array}   models.News
+// @Failure      500       {object}  map[string]string
+// @Router       /news [get]
 func (h *NewsHandler) GetAll(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -56,6 +70,16 @@ func (h *NewsHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, newsList)
 }
 
+// GetByID godoc
+// @Summary      Получить новость по ID
+// @Description  Возвращает одну новость по её UUID
+// @Tags         news
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string  true  "UUID новости"
+// @Success      200  {object}  models.News
+// @Failure      404  {object}  map[string]string
+// @Router       /news/{id} [get]
 func (h *NewsHandler) GetByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
@@ -69,6 +93,17 @@ func (h *NewsHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, n)
 }
 
+// Create godoc
+// @Summary      Создать новость
+// @Description  Создаёт новую новость с переводами и категорией
+// @Tags         news
+// @Accept       json
+// @Produce      json
+// @Param        news  body      models.News  true  "Данные новости"
+// @Success      201   {object}  models.News
+// @Failure      400   {object}  map[string]string
+// @Failure      500   {object}  map[string]string
+// @Router       /news [post]
 func (h *NewsHandler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 	var input models.News
@@ -87,6 +122,18 @@ func (h *NewsHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, created)
 }
 
+// Update godoc
+// @Summary      Обновить новость
+// @Description  Обновляет существующую новость по её ID
+// @Tags         news
+// @Accept       json
+// @Produce      json
+// @Param        id    path      string      true  "UUID новости"
+// @Param        news  body      models.News  true  "Обновлённые данные новости"
+// @Success      200   {object}  models.News
+// @Failure      400   {object}  map[string]string
+// @Failure      500   {object}  map[string]string
+// @Router       /news/{id} [put]
 func (h *NewsHandler) Update(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
@@ -108,6 +155,16 @@ func (h *NewsHandler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, updated)
 }
 
+// Delete godoc
+// @Summary      Удалить новость
+// @Description  Удаляет новость по её UUID
+// @Tags         news
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string  true  "UUID новости"
+// @Success      204  {string}  string  "No Content"
+// @Failure      500  {object}  map[string]string
+// @Router       /news/{id} [delete]
 func (h *NewsHandler) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
