@@ -98,7 +98,6 @@ func createProxy(service config.ServiceConfig) gin.HandlerFunc {
 			req.URL.Host = targetURL.Host
 			req.Host = targetURL.Host
 
-			// Forward auth headers and claims
 			if userID, exists := c.Get("userID"); exists {
 				req.Header.Set("X-User-ID", fmt.Sprint(userID))
 			}
@@ -108,8 +107,6 @@ func createProxy(service config.ServiceConfig) gin.HandlerFunc {
 			if isAdmin, exists := c.Get("isAdmin"); exists {
 				req.Header.Set("X-Is-Admin", fmt.Sprint(isAdmin))
 			}
-
-			// Handle multipart form data
 			if strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
 				form, err := c.MultipartForm()
 				if err == nil {
@@ -119,7 +116,6 @@ func createProxy(service config.ServiceConfig) gin.HandlerFunc {
 		}
 
 		proxy.ModifyResponse = func(resp *http.Response) error {
-			// Copy cookies from auth service responses
 			if strings.Contains(resp.Request.URL.Path, "/auth/") {
 				for _, cookie := range resp.Cookies() {
 					c.SetCookie(cookie.Name, cookie.Value, cookie.MaxAge, cookie.Path,
@@ -132,8 +128,6 @@ func createProxy(service config.ServiceConfig) gin.HandlerFunc {
 		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 			c.JSON(http.StatusBadGateway, gin.H{"error": "service unavailable"})
 		}
-
-		// Copy the request body
 		var bodyBytes []byte
 		if c.Request.Body != nil {
 			bodyBytes, _ = io.ReadAll(c.Request.Body)
@@ -141,8 +135,6 @@ func createProxy(service config.ServiceConfig) gin.HandlerFunc {
 		}
 
 		proxy.ServeHTTP(c.Writer, c.Request)
-
-		// Restore the request body for subsequent handlers
 		if bodyBytes != nil {
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}

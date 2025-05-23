@@ -17,7 +17,6 @@ type Claims struct {
 
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get access token from cookie
 		accessToken, err := c.Cookie("access_token")
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: missing token"})
@@ -25,7 +24,6 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Validate token with auth service
 		authURL := fmt.Sprintf("http://%s:%s/api/v1/auth/validate", cfg.AuthService.Host, cfg.AuthService.Port)
 		req, _ := http.NewRequest("GET", authURL, nil)
 		req.AddCookie(&http.Cookie{Name: "access_token", Value: accessToken})
@@ -52,7 +50,6 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Set claims in context
 		c.Set("userID", claims.UserID)
 		c.Set("role", claims.Role)
 		c.Set("isAdmin", claims.Role == "admin")
