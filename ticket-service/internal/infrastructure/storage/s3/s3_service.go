@@ -21,7 +21,7 @@ type s3Service struct {
 }
 
 // NewS3Service создает новый экземпляр сервиса для работы с S3
-func NewS3Service(cfg *Config) (services.FileService, error) {
+func NewS3Service(cfg *Config) (services.IFileService, error) {
 	logger.Info("Initializing S3 service", "endpoint", cfg.Endpoint, "bucket", cfg.BucketName)
 
 	// Инициализация клиента MinIO
@@ -62,64 +62,57 @@ func NewS3Service(cfg *Config) (services.FileService, error) {
 	}, nil
 }
 
-func (s *s3Service) UploadFile(ctx context.Context, file io.Reader, filename string, contentType string) (string, error) {
-	logger.Info("Starting file upload", "filename", filename, "contentType", contentType)
+func (s *s3Service) UploadFile(ctx context.Context, file io.Reader, folder string, id string) (string, error) {
+	logger.Info("Starting file upload", "folder", folder, "id", id)
 
 	// Проверяем размер файла
 	fileSize, err := getFileSize(file)
 	if err != nil {
-		logger.Error("Failed to get file size", "filename", filename, "error", err)
+		logger.Error("Failed to get file size", "error", err)
 		return "", fmt.Errorf("failed to get file size: %w", err)
 	}
 
 	if fileSize > MaxFileSize {
-		logger.Warn("File too large", "filename", filename, "size", fileSize, "maxSize", MaxFileSize)
+		logger.Warn("File too large", "size", fileSize, "maxSize", MaxFileSize)
 		return "", ErrFileTooLarge
 	}
 
 	// Генерируем уникальное имя файла
-	objectName := fmt.Sprintf("%d/%s", time.Now().UnixNano(), filename)
+	objectName := fmt.Sprintf("%s/%s/%s", folder, id, time.Now().Format("20060102150405"))
 	logger.Info("Generated object name", "objectName", objectName)
 
 	// Загружаем файл
-	_, err = s.client.PutObject(ctx, s.bucketName, objectName, file, fileSize, minio.PutObjectOptions{
-		ContentType: contentType,
-	})
+	_, err = s.client.PutObject(ctx, s.bucketName, objectName, file, fileSize, minio.PutObjectOptions{})
 	if err != nil {
 		logger.Error("Failed to upload file", "objectName", objectName, "error", err)
 		return "", fmt.Errorf("%w: %v", ErrUploadFailed, err)
 	}
 
+	// Генерируем URL для доступа к файлу
+	fileURL, err := s.GetFileURL(ctx, objectName)
+	if err != nil {
+		logger.Error("Failed to generate file URL", "objectName", objectName, "error", err)
+		return "", fmt.Errorf("failed to generate file URL: %w", err)
+	}
+
 	logger.Info("File uploaded successfully", "objectName", objectName, "size", fileSize)
-	return objectName, nil
+	return fileURL, nil
 }
 
-func (s *s3Service) DownloadFile(ctx context.Context, filepath string) (io.ReadCloser, error) {
-	logger.Info("Starting file download", "filepath", filepath)
+func (s *s3Service) DeleteFile(ctx context.Context, fileURL string) error {
+	logger.Info("Starting file deletion", "fileURL", fileURL)
 
-	// Проверяем существование файла
-	exists, err := s.CheckFileExists(ctx, filepath)
+	// Извлекаем путь к файлу из URL
+	parsedURL, err := url.Parse(fileURL)
 	if err != nil {
-		logger.Error("Failed to check file existence", "filepath", filepath, "error", err)
-		return nil, fmt.Errorf("failed to check file existence: %w", err)
-	}
-	if !exists {
-		logger.Warn("File not found", "filepath", filepath)
-		return nil, ErrFileNotFound
+		logger.Error("Failed to parse file URL", "fileURL", fileURL, "error", err)
+		return fmt.Errorf("failed to parse file URL: %w", err)
 	}
 
-	object, err := s.client.GetObject(ctx, s.bucketName, filepath, minio.GetObjectOptions{})
-	if err != nil {
-		logger.Error("Failed to download file", "filepath", filepath, "error", err)
-		return nil, fmt.Errorf("%w: %v", ErrDownloadFailed, err)
+	filepath := parsedURL.Path
+	if filepath[0] == '/' {
+		filepath = filepath[1:]
 	}
-
-	logger.Info("File download started", "filepath", filepath)
-	return object, nil
-}
-
-func (s *s3Service) DeleteFile(ctx context.Context, filepath string) error {
-	logger.Info("Starting file deletion", "filepath", filepath)
 
 	// Проверяем существование файла
 	exists, err := s.CheckFileExists(ctx, filepath)

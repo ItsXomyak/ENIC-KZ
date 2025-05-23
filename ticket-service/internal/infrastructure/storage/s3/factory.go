@@ -6,7 +6,7 @@ import (
 )
 
 // Factory создает и возвращает новый экземпляр S3 сервиса
-func Factory(cfg *config.Config) (services.FileService, error) {
+func Factory(cfg *config.Config) (services.IFileService, error) {
 	s3Config := NewConfig(
 		cfg.S3.Endpoint,
 		cfg.S3.AccessKeyID,

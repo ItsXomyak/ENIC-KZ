@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -26,64 +26,78 @@ func NewTicketHandler(ticketService *services.TicketService) *TicketHandler {
 // @Summary Создать новый тикет
 // @Description Создает новый тикет с возможностью прикрепления файла
 // @Tags tickets
-// @Accept multipart/form-data
+// @Accept json
 // @Produce json
-// @Param subject formData string true "Тема тикета"
-// @Param question formData string true "Вопрос"
-// @Param file formData file false "Прикрепленный файл"
+// @Param request body models.CreateTicketRequest true "Данные тикета"
 // @Success 201 {object} models.Ticket
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /tickets [post]
 func (h *TicketHandler) CreateTicket(c *gin.Context) {
-	userID := c.GetInt64("userID")
-	if userID == 0 {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
+	var req models.CreateTicketRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("Failed to bind request", "error", err)
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid request format"})
 		return
 	}
 
-	subject := c.PostForm("subject")
-	question := c.PostForm("question")
-	if subject == "" || question == "" {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "subject and question are required"})
-		return
-	}
-
-	file, _ := c.FormFile("file")
-	var fileReader io.Reader
-	var fileName, fileType *string
-	if file != nil {
-		openedFile, err := file.Open()
-		if err != nil {
-			logger.Error("Failed to open file", "error", err)
-			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to process file"})
+	// Проверяем авторизацию
+	userID, exists := c.Get("userID")
+	if !exists {
+		// Неавторизованный пользователь
+		if req.Email == "" {
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "email is required for guests"})
 			return
 		}
-		defer openedFile.Close()
-		fileReader = openedFile
-		
-		// Получаем имя и тип файла
-		name := file.Filename
-		contentType := file.Header.Get("Content-Type")
-		fileName = &name
-		fileType = &contentType
+		if !isValidEmail(req.Email) {
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid email format"})
+			return
+		}
 	}
 
+	if req.Subject == "" || req.Question == "" || req.FullName == "" {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "subject, question and full_name are required"})
+		return
+	}
+
+	// Создаём тикет
 	ticket := &models.Ticket{
-		UserID:   userID,
-		Subject:  subject,
-		Question: question,
-		FileName: fileName,
-		FileType: fileType,
+		Subject:    req.Subject,
+		Question:   req.Question,
+		Email:      req.Email,
+		FullName:   req.FullName,
+		Phone:      req.Phone,
+		NotifyEmail: req.NotifyEmail,
+		NotifyTG:   req.NotifyTG,
+		Status:     models.TicketStatusNew,
 	}
 
-	if err := h.ticketService.CreateTicket(c.Request.Context(), ticket, fileReader); err != nil {
+	if exists {
+		ticket.UserID = userID.(int64)
+		// Для авторизованных пользователей всегда включаем уведомления
+		ticket.NotifyEmail = true
+	}
+
+	// Сохраняем тикет
+	if err := h.ticketService.CreateTicket(c.Request.Context(), ticket, nil); err != nil {
 		logger.Error("Failed to create ticket", "error", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, ticket)
+}
+
+// isValidEmail проверяет корректность формата email
+func isValidEmail(email string) bool {
+	// Простая проверка формата email
+	if len(email) < 3 || len(email) > 254 {
+		return false
+	}
+	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
+		return false
+	}
+	return true
 }
 
 // GetTicket получает тикет по ID

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -12,20 +13,27 @@ import (
 	"ticket-service/internal/logger"
 )
 
+// Определяем пользовательские ошибки
+var (
+	ErrAntivirusNotAvailable = errors.New("antivirus service is not available")
+	ErrFileRequired          = errors.New("file name and type are required when file is provided")
+	ErrFileContainsMalware   = errors.New("file contains malware")
+)
+
 type TicketService struct {
 	ticketRepo      repositories.TicketRepository
 	historyRepo     repositories.TicketHistoryRepository
 	responseRepo    repositories.ResponseRepository
-	antivirusService AntivirusService
-	fileService     FileService
+	antivirusService IAntivirusService
+	fileService     IFileService
 }
 
 func NewTicketService(
 	ticketRepo repositories.TicketRepository,
 	historyRepo repositories.TicketHistoryRepository,
 	responseRepo repositories.ResponseRepository,
-	antivirusService AntivirusService,
-	fileService FileService,
+	antivirusService IAntivirusService,
+	fileService IFileService,
 ) *TicketService {
 	return &TicketService{
 		ticketRepo:      ticketRepo,
@@ -41,30 +49,46 @@ func (s *TicketService) CreateTicket(ctx context.Context, ticket *models.Ticket,
 
 	if s.antivirusService == nil {
 		logger.Error("ClamAV is not available")
-		return fmt.Errorf("antivirus service is not available")
+		return ErrAntivirusNotAvailable
 	}
 
 	if fileReader != nil {
 		if ticket.FileName == nil || ticket.FileType == nil {
-			return errors.New("file name and type are required when file is provided")
+			return ErrFileRequired
 		}
 
+		// Буферизуем файл для возможности повторного чтения
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, fileReader); err != nil {
+			logger.Error("Failed to buffer file", "error", err, "filename", *ticket.FileName)
+			return fmt.Errorf("failed to buffer file: %w", err)
+		}
+
+		// Создаем bytes.Reader для поддержки Seek
+		reader := bytes.NewReader(buf.Bytes())
+
 		// Сканируем файл
-		result, err := s.antivirusService.ScanFile(ctx, fileReader)
+		isClean, err := s.antivirusService.ScanFile(ctx, reader)
 		if err != nil {
-			logger.Error("Failed to scan file", "error", err)
+			logger.Error("Failed to scan file", "error", err, "filename", *ticket.FileName)
 			return fmt.Errorf("failed to scan file: %w", err)
 		}
 
-		if result.IsInfected {
-			logger.Error("File contains malware", "filename", *ticket.FileName, "virusName", result.VirusName)
-			return fmt.Errorf("file contains malware: %s", result.VirusName)
+		if !isClean {
+			logger.Error("File contains malware", "filename", *ticket.FileName)
+			return ErrFileContainsMalware
+		}
+
+		// Сбрасываем позицию чтения
+		if _, err := reader.Seek(0, io.SeekStart); err != nil {
+			logger.Error("Failed to reset file position", "error", err, "filename", *ticket.FileName)
+			return fmt.Errorf("failed to reset file position: %w", err)
 		}
 
 		// Загружаем файл в S3
-		fileURL, err := s.fileService.UploadFile(ctx, fileReader, *ticket.FileName, *ticket.FileType)
+		fileURL, err := s.fileService.UploadFile(ctx, reader, "tickets", fmt.Sprintf("%d", ticket.UserID))
 		if err != nil {
-			logger.Error("Failed to upload file", "error", err)
+			logger.Error("Failed to upload file", "error", err, "filename", *ticket.FileName)
 			return fmt.Errorf("failed to upload file: %w", err)
 		}
 		ticket.FileURL = &fileURL
@@ -78,6 +102,7 @@ func (s *TicketService) CreateTicket(ctx context.Context, ticket *models.Ticket,
 	// Создаем тикет в базе данных
 	id, err := s.ticketRepo.Create(ctx, ticket)
 	if err != nil {
+		logger.Error("Failed to create ticket in database", "error", err, "userID", ticket.UserID)
 		return fmt.Errorf("failed to create ticket: %w", err)
 	}
 	ticket.ID = id
@@ -91,10 +116,11 @@ func (s *TicketService) CreateTicket(ctx context.Context, ticket *models.Ticket,
 	}
 
 	if _, err := s.historyRepo.Create(ctx, history); err != nil {
-		logger.Error("Failed to create ticket history", "error", err)
+		logger.Error("Failed to create ticket history", "error", err, "ticketID", ticket.ID)
 		// Не возвращаем ошибку, так как основная операция уже выполнена
 	}
 
+	logger.Info("Ticket created successfully", "ticketID", ticket.ID, "userID", ticket.UserID)
 	return nil
 }
 
@@ -123,7 +149,10 @@ func (s *TicketService) GetAllTickets(ctx context.Context, req models.GetTickets
 }
 
 func (s *TicketService) UpdateTicketStatus(ctx context.Context, id int64, status models.TicketStatus, adminID int64, comment *string) error {
+	logger.Info("Updating ticket status", "ticketID", id, "status", status, "adminID", adminID)
+
 	if err := s.ticketRepo.UpdateStatus(ctx, id, status, adminID, comment); err != nil {
+		logger.Error("Failed to update ticket status", "error", err, "ticketID", id)
 		return fmt.Errorf("failed to update ticket status: %w", err)
 	}
 
@@ -135,9 +164,11 @@ func (s *TicketService) UpdateTicketStatus(ctx context.Context, id int64, status
 		AdminID:  &adminID,
 	}
 	if _, err := s.historyRepo.Create(ctx, history); err != nil {
+		logger.Error("Failed to create history record", "error", err, "ticketID", id)
 		return fmt.Errorf("failed to create history record: %w", err)
 	}
 
+	logger.Info("Ticket status updated successfully", "ticketID", id, "status", status)
 	return nil
 }
 
@@ -180,18 +211,90 @@ func (s *TicketService) GetTicketResponses(ctx context.Context, ticketID int64, 
 }
 
 func (s *TicketService) CreateResponse(ctx context.Context, response *models.Response) (int64, error) {
+	logger.Info("Creating new response", "ticketID", response.TicketID)
+
+	// Проверяем существование тикета
+	ticket, err := s.ticketRepo.GetByID(ctx, response.TicketID)
+	if err != nil {
+		logger.Error("Failed to get ticket", "error", err, "ticketID", response.TicketID)
+		return 0, fmt.Errorf("failed to get ticket: %w", err)
+	}
+
+	// Проверяем, что тикет не закрыт
+	if ticket.Status == models.TicketStatusClosed {
+		logger.Error("Cannot add response to closed ticket", "ticketID", response.TicketID)
+		return 0, fmt.Errorf("cannot add response to closed ticket")
+	}
+
 	response.CreatedAt = time.Now()
 	id, err := s.responseRepo.Create(ctx, response)
 	if err != nil {
+		logger.Error("Failed to create response", "error", err, "ticketID", response.TicketID)
 		return 0, fmt.Errorf("failed to create response: %w", err)
 	}
+
+	// Создаем запись в истории
+	comment := "Добавлен ответ"
+	history := &models.TicketHistory{
+		TicketID: response.TicketID,
+		Status:   ticket.Status,
+		Comment:  &comment,
+	}
+	if _, err := s.historyRepo.Create(ctx, history); err != nil {
+		logger.Error("Failed to create history record", "error", err, "ticketID", response.TicketID)
+		// Не возвращаем ошибку, так как основная операция уже выполнена
+	}
+
+	logger.Info("Response created successfully", "responseID", id, "ticketID", response.TicketID)
 	return id, nil
 }
 
 func (s *TicketService) UpdateResponse(ctx context.Context, id int64, message string) error {
+	logger.Info("Updating response", "responseID", id)
+
+	// Получаем текущий ответ
+	responses, _, err := s.responseRepo.GetByTicketIDWithPagination(ctx, id, 1, 1)
+	if err != nil {
+		logger.Error("Failed to get response", "error", err, "responseID", id)
+		return fmt.Errorf("failed to get response: %w", err)
+	}
+	if len(responses) == 0 {
+		logger.Error("Response not found", "responseID", id)
+		return fmt.Errorf("response not found")
+	}
+
+	response := responses[0]
+	
+	// Проверяем, что тикет не закрыт
+	ticket, err := s.ticketRepo.GetByID(ctx, response.TicketID)
+	if err != nil {
+		logger.Error("Failed to get ticket", "error", err, "ticketID", response.TicketID)
+		return fmt.Errorf("failed to get ticket: %w", err)
+	}
+
+	if ticket.Status == models.TicketStatusClosed {
+		logger.Error("Cannot update response in closed ticket", "ticketID", response.TicketID)
+		return fmt.Errorf("cannot update response in closed ticket")
+	}
+
 	if err := s.responseRepo.UpdateMessage(ctx, id, message); err != nil {
+		logger.Error("Failed to update response", "error", err, "responseID", id)
 		return fmt.Errorf("failed to update response: %w", err)
 	}
+
+	// Создаем запись в истории
+	comment := "Ответ обновлен"
+	history := &models.TicketHistory{
+		TicketID: response.TicketID,
+		Status:   ticket.Status,
+		Comment:  &comment,
+	}
+	if _, err := s.historyRepo.Create(ctx, history); err != nil {
+		logger.Error("Failed to create history record", "error", err, "ticketID", response.TicketID)
+		// Не возвращаем ошибку, так как основная операция уже выполнена
+	}
+
+	logger.Info("Response updated successfully", "responseID", id)
 	return nil
 }
 
@@ -203,8 +306,50 @@ func (s *TicketService) UpdateResponseFile(ctx context.Context, id int64, fileUR
 }
 
 func (s *TicketService) DeleteResponse(ctx context.Context, id int64) error {
+	logger.Info("Deleting response", "responseID", id)
+
+	// Получаем текущий ответ
+	responses, _, err := s.responseRepo.GetByTicketIDWithPagination(ctx, id, 1, 1)
+	if err != nil {
+		logger.Error("Failed to get response", "error", err, "responseID", id)
+		return fmt.Errorf("failed to get response: %w", err)
+	}
+	if len(responses) == 0 {
+		logger.Error("Response not found", "responseID", id)
+		return fmt.Errorf("response not found")
+	}
+
+	response := responses[0]
+	
+	// Проверяем, что тикет не закрыт
+	ticket, err := s.ticketRepo.GetByID(ctx, response.TicketID)
+	if err != nil {
+		logger.Error("Failed to get ticket", "error", err, "ticketID", response.TicketID)
+		return fmt.Errorf("failed to get ticket: %w", err)
+	}
+
+	if ticket.Status == models.TicketStatusClosed {
+		logger.Error("Cannot delete response in closed ticket", "ticketID", response.TicketID)
+		return fmt.Errorf("cannot delete response in closed ticket")
+	}
+
 	if err := s.responseRepo.Delete(ctx, id); err != nil {
+		logger.Error("Failed to delete response", "error", err, "responseID", id)
 		return fmt.Errorf("failed to delete response: %w", err)
 	}
+
+	// Создаем запись в истории
+	comment := "Ответ удален"
+	history := &models.TicketHistory{
+		TicketID: response.TicketID,
+		Status:   ticket.Status,
+		Comment:  &comment,
+	}
+	if _, err := s.historyRepo.Create(ctx, history); err != nil {
+		logger.Error("Failed to create history record", "error", err, "ticketID", response.TicketID)
+		// Не возвращаем ошибку, так как основная операция уже выполнена
+	}
+
+	logger.Info("Response deleted successfully", "responseID", id)
 	return nil
 } 

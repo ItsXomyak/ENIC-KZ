@@ -25,7 +25,12 @@ type clamavService struct {
 }
 
 // NewClamAVService создает новый экземпляр сервиса для работы с ClamAV
-func NewClamAVService(address string, timeout time.Duration) services.AntivirusService {
+func NewClamAVService(address string, timeout time.Duration) services.IAntivirusService {
+	if address == "" {
+		logger.Error("ClamAV address is empty")
+		return nil
+	}
+
 	if timeout == 0 {
 		timeout = defaultTimeout
 	}
@@ -36,20 +41,20 @@ func NewClamAVService(address string, timeout time.Duration) services.AntivirusS
 	}
 }
 
-func (s *clamavService) ScanFile(ctx context.Context, file io.Reader) (*services.ScanResult, error) {
+func (s *clamavService) ScanFile(ctx context.Context, file io.Reader) (bool, error) {
 	logger.Info("Starting file scan via ClamAV")
 
 	conn, err := s.connect()
 	if err != nil {
 		logger.Error("Failed to connect to ClamAV", "error", err)
-		return nil, fmt.Errorf("failed to connect to ClamAV: %w", err)
+		return false, fmt.Errorf("failed to connect to ClamAV: %w", err)
 	}
 	defer conn.Close()
 
 	// Отправляем команду SCAN
 	if _, err := fmt.Fprintf(conn, "n%s\n", scanCommand); err != nil {
 		logger.Error("Failed to send SCAN command", "error", err)
-		return nil, fmt.Errorf("failed to send SCAN command: %w", err)
+		return false, fmt.Errorf("failed to send SCAN command: %w", err)
 	}
 
 	// Читаем ответ
@@ -57,31 +62,23 @@ func (s *clamavService) ScanFile(ctx context.Context, file io.Reader) (*services
 	n, err := conn.Read(response)
 	if err != nil {
 		logger.Error("Failed to read ClamAV response", "error", err)
-		return nil, fmt.Errorf("failed to read ClamAV response: %w", err)
+		return false, fmt.Errorf("failed to read ClamAV response: %w", err)
 	}
 
-	result := &services.ScanResult{}
 	responseStr := string(response[:n])
+	isClean := responseStr == "OK\n"
 
-	// Анализируем ответ
-	if responseStr == "OK\n" {
-		result.IsInfected = false
-	} else {
-		result.IsInfected = true
-		result.VirusName = responseStr
-	}
-
-	logger.Info("File scan completed", "isInfected", result.IsInfected, "virusName", result.VirusName)
-	return result, nil
+	logger.Info("File scan completed", "isClean", isClean)
+	return isClean, nil
 }
 
-func (s *clamavService) ScanFileFromPath(ctx context.Context, filePath string) (*services.ScanResult, error) {
+func (s *clamavService) ScanFileFromPath(ctx context.Context, filePath string) (bool, error) {
 	logger.Info("Starting file scan from path", "filePath", filePath)
 
 	file, err := os.Open(filePath)
 	if err != nil {
 		logger.Error("Failed to open file", "error", err, "filePath", filePath)
-		return nil, fmt.Errorf("failed to open file: %w", err)
+		return false, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 

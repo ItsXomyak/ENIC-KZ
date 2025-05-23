@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"time"
 
 	"ticket-service/internal/domain/models"
 	"ticket-service/internal/domain/repositories"
@@ -13,25 +12,63 @@ import (
 
 type ResponseService struct {
 	responseRepo repositories.ResponseRepository
+	ticketRepo   repositories.TicketRepository
+	fileService  IFileService
+	emailService IEmailService
 }
 
 func NewResponseService(
 	responseRepo repositories.ResponseRepository,
+	ticketRepo repositories.TicketRepository,
+	fileService IFileService,
+	emailService IEmailService,
 ) *ResponseService {
 	return &ResponseService{
 		responseRepo: responseRepo,
+		ticketRepo:   ticketRepo,
+		fileService:  fileService,
+		emailService: emailService,
 	}
 }
 
 // CreateResponse создает новый ответ на тикет
 func (s *ResponseService) CreateResponse(ctx context.Context, response *models.Response, file io.Reader) error {
-	logger.Info("Creating new response", "ticketID", response.TicketID, "adminID", response.AdminID)
-
-	response.CreatedAt = time.Now()
-	_, err := s.responseRepo.Create(ctx, response)
+	// Получаем информацию о тикете
+	ticket, err := s.ticketRepo.GetByID(ctx, response.TicketID)
 	if err != nil {
-		logger.Error("Failed to create response", "error", err)
-		return fmt.Errorf("failed to create response: %w", err)
+		return err
+	}
+
+	// Если есть файл, загружаем его в S3
+	if file != nil {
+		fileURL, err := s.fileService.UploadFile(ctx, file, "responses", fmt.Sprintf("%d", response.TicketID))
+		if err != nil {
+			return err
+		}
+		response.FileURL = &fileURL
+	}
+
+	// Создаем ответ
+	id, err := s.responseRepo.Create(ctx, response)
+	if err != nil {
+		return err
+	}
+	response.ID = id
+
+	// Если пользователь подписан на уведомления по email, отправляем уведомление
+	if ticket.NotifyEmail {
+		if err := s.emailService.SendTicketResponseNotification(
+			ticket.Email,
+			ticket.Subject,
+			response.Message,
+		); err != nil {
+			// Логируем ошибку, но не прерываем выполнение
+			logger.Error("Failed to send email notification",
+				"error", err,
+				"ticketID", ticket.ID,
+				"userEmail", ticket.Email,
+			)
+		}
 	}
 
 	return nil

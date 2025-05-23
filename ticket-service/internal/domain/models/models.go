@@ -62,7 +62,7 @@ type CreateTicketRequest struct {
 	Subject    string  `json:"subject" binding:"required"`
 	Question   string  `json:"question" binding:"required"`
 	FullName   string  `json:"full_name" binding:"required"`
-	Email      string  `json:"email" binding:"required,email"`
+	Email      string  `json:"email" binding:"omitempty,email"`
 	Phone      *string `json:"phone,omitempty"`
 	TelegramID *string `json:"telegram_id,omitempty"`
 	NotifyEmail bool   `json:"notify_email"`

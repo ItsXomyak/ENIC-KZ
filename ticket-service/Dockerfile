@@ -1,5 +1,5 @@
 # Этап сборки
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # Установка необходимых зависимостей
 RUN apk add --no-cache git
@@ -15,10 +15,13 @@ RUN go mod download
 COPY . .
 
 # Сборка приложения
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/ticket-service ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api
+
+# Установка migrate
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 # Финальный этап
-FROM alpine:3.18
+FROM alpine:latest
 
 # Установка необходимых пакетов
 RUN apk add --no-cache ca-certificates tzdata
@@ -26,11 +29,10 @@ RUN apk add --no-cache ca-certificates tzdata
 # Установка рабочей директории
 WORKDIR /app
 
-# Копирование бинарного файла из этапа сборки
-COPY --from=builder /app/ticket-service .
-
-# Копирование конфигурационных файлов
-COPY config/config.yaml ./config/
+# Копирование бинарных файлов из builder
+COPY --from=builder /app/main .
+COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
+COPY --from=builder /app/migrations ./migrations
 
 # Установка переменных окружения
 ENV TZ=UTC
@@ -39,4 +41,4 @@ ENV TZ=UTC
 EXPOSE 8080
 
 # Запуск приложения
-CMD ["./ticket-service"] 
+CMD ["./main"] 

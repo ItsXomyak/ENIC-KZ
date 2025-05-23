@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -14,11 +15,19 @@ import (
 func SetupRouter(
 	ticketHandler *handlers.TicketHandler,
 	responseHandler *handlers.ResponseHandler,
+	redisClient *redis.Client,
 ) *gin.Engine {
 	router := gin.Default()
 
 	// Добавляем Prometheus middleware
 	router.Use(middleware.PrometheusMiddleware())
+
+	// Добавляем rate limiter
+	rateLimiterConfig := middleware.RateLimiterConfig{
+		RequestsPerMinute: 60, // 1 запрос в секунду
+		BurstSize:        10,  // Разрешаем до 10 запросов одновременно
+	}
+	router.Use(middleware.RedisRateLimiter(redisClient, rateLimiterConfig))
 
 	// Эндпоинт для метрик Prometheus
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
