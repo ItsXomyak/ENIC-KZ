@@ -1,0 +1,245 @@
+basePath: /api/v1
+definitions:
+  handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      role:
+        type: string
+    type: object
+  handlers.RequestResetRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  handlers.RequestResetResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.ResetPasswordRequest:
+    properties:
+      newPassword:
+        type: string
+      token:
+        type: string
+    type: object
+  handlers.ResetPasswordResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.ResponseMessage:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.Verify2FARequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Authentication microservice with JWT and cookie-based login
+  title: AuthForge API
+  version: "1.0"
+paths:
+  /auth/confirm:
+    get:
+      description: Activates user account by confirmation token from query
+      parameters:
+      - description: Confirmation token
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid or expired token
+          schema:
+            type: string
+      summary: Confirm user account
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates user and sets access and refresh JWT cookies
+      parameters:
+      - description: Email and password
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResponseMessage'
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Log in a user
+      tags:
+      - auth
+  /auth/password-reset-confirm:
+    post:
+      consumes:
+      - application/json
+      description: Resets password using provided token
+      parameters:
+      - description: Reset token and new password
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResetPasswordResponse'
+        "400":
+          description: Invalid or expired token
+          schema:
+            type: string
+      summary: Reset password
+      tags:
+      - auth
+  /auth/password-reset-request:
+    post:
+      consumes:
+      - application/json
+      description: Sends password reset instructions to email
+      parameters:
+      - description: Email address
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RequestResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.RequestResetResponse'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Request password reset
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account and sends confirmation email
+      parameters:
+      - description: User credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResponseMessage'
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Register a new user
+      tags:
+      - auth
+  /auth/validate:
+    get:
+      description: Returns user claims if token is valid
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Validate JWT token from cookie
+      tags:
+      - auth
+  /auth/verify-2fa:
+    post:
+      consumes:
+      - application/json
+      description: Checks a 2FA code and, if valid, issues JWT cookies
+      parameters:
+      - description: Email and 2FA code
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.Verify2FARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ResponseMessage'
+        "400":
+          description: Invalid or expired code
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Verify 2FA code for admin
+      tags:
+      - auth
+swagger: "2.0"

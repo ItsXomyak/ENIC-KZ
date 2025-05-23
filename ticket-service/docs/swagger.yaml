@@ -1,0 +1,448 @@
+basePath: /api/v1
+definitions:
+  handlers.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  handlers.UpdateStatusRequest:
+    properties:
+      comment:
+        type: string
+      status:
+        $ref: '#/definitions/models.TicketStatus'
+    required:
+    - status
+    type: object
+  models.CreateTicketRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      notify_email:
+        type: boolean
+      notify_tg:
+        type: boolean
+      phone:
+        type: string
+      question:
+        type: string
+      subject:
+        type: string
+      telegram_id:
+        type: string
+    required:
+    - full_name
+    - question
+    - subject
+    type: object
+  models.Response:
+    properties:
+      admin_id:
+        type: integer
+      created_at:
+        type: string
+      file_url:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      ticket_id:
+        type: integer
+    type: object
+  models.Ticket:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      file_checked:
+        type: boolean
+      file_name:
+        type: string
+      file_type:
+        type: string
+      file_url:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      notify_email:
+        type: boolean
+      notify_tg:
+        type: boolean
+      phone:
+        type: string
+      question:
+        type: string
+      status:
+        $ref: '#/definitions/models.TicketStatus'
+      subject:
+        type: string
+      telegram_id:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.TicketHistory:
+    properties:
+      admin_id:
+        type: integer
+      comment:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      status:
+        $ref: '#/definitions/models.TicketStatus'
+      ticket_id:
+        type: integer
+    type: object
+  models.TicketStatus:
+    enum:
+    - new
+    - in_progress
+    - closed
+    type: string
+    x-enum-varnames:
+    - TicketStatusNew
+    - TicketStatusInProgress
+    - TicketStatusClosed
+host: localhost:8080
+info:
+  contact:
+    email: support@enic.kz
+    name: ENIC-KZ Support
+  description: API for managing support tickets and responses
+  title: Ticket Service API
+  version: "1.0"
+paths:
+  /responses/ticket/{id}:
+    get:
+      description: Получает список всех ответов на тикет (только для администраторов)
+      parameters:
+      - description: ID тикета
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Response'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить ответы на тикет
+      tags:
+      - responses
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создает новый ответ на тикет (только для администраторов)
+      parameters:
+      - description: ID тикета
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Сообщение
+        in: formData
+        name: message
+        required: true
+        type: string
+      - description: Прикрепленный файл
+        in: formData
+        name: file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Создать ответ на тикет
+      tags:
+      - responses
+  /tickets:
+    get:
+      description: Получает список всех тикетов (только для администраторов)
+      parameters:
+      - description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - description: Размер страницы
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Ticket'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить все тикеты
+      tags:
+      - tickets
+    post:
+      consumes:
+      - application/json
+      description: Создает новый тикет с возможностью прикрепления файла
+      parameters:
+      - description: Данные тикета
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateTicketRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Ticket'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Создать новый тикет
+      tags:
+      - tickets
+  /tickets/{id}:
+    get:
+      description: Получает информацию о тикете по его ID
+      parameters:
+      - description: ID тикета
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Ticket'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить тикет
+      tags:
+      - tickets
+  /tickets/{id}/history:
+    get:
+      description: Получает историю изменений тикета
+      parameters:
+      - description: ID тикета
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.TicketHistory'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить историю тикета
+      tags:
+      - tickets
+  /tickets/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет статус тикета (только для администраторов)
+      parameters:
+      - description: ID тикета
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Ticket'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Обновить статус тикета
+      tags:
+      - tickets
+  /tickets/search:
+    get:
+      description: Поиск тикетов по запросу (только для администраторов)
+      parameters:
+      - description: Поисковый запрос
+        in: query
+        name: query
+        required: true
+        type: string
+      - description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - description: Размер страницы
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Ticket'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Поиск тикетов
+      tags:
+      - tickets
+  /tickets/user:
+    get:
+      description: Получает список тикетов текущего пользователя
+      parameters:
+      - description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - description: Размер страницы
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Ticket'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить тикеты пользователя
+      tags:
+      - tickets
+schemes:
+- http
+- https
+swagger: "2.0"

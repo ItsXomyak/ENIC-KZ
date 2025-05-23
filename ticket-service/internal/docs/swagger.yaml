@@ -1,0 +1,528 @@
+openapi: 3.0.0
+info:
+  title: Ticket Service API
+  description: |
+    API for managing support tickets and responses. This service allows users to create and manage support tickets,
+    while administrators can respond to and manage ticket statuses.
+    
+    ## Features
+    - Create and view support tickets
+    - Manage ticket statuses
+    - Add responses to tickets
+    - File attachments support
+    - Email and Telegram notifications
+
+    ## Documentation
+    You can access this documentation at:
+    - Swagger UI: `/swagger/index.html`
+    - OpenAPI Spec: `/swagger/doc.json`
+  version: 1.0.0
+  contact:
+    name: ENIC-KZ Support
+    email: support@enic.kz
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local Development Server
+  - url: /api/v1
+    description: Production Server
+
+tags:
+  - name: tickets
+    description: Operations related to ticket management
+  - name: responses
+    description: Operations related to ticket responses
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid ticket status provided"
+
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 12345
+          description: Unique ticket identifier
+        subject:
+          type: string
+          example: "Cannot access my account"
+          description: Brief description of the issue
+        question:
+          type: string
+          example: "I'm trying to log in but keep getting an error message..."
+          description: Detailed description of the issue
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+          description: User's email address
+        full_name:
+          type: string
+          example: "John Doe"
+          description: Full name of the ticket creator
+        phone:
+          type: string
+          example: "+77771234567"
+          description: Contact phone number
+        status:
+          type: string
+          enum: [new, in_progress, resolved, closed]
+          example: "new"
+          description: Current status of the ticket
+        notify_email:
+          type: boolean
+          example: true
+          description: Whether to send email notifications
+        notify_tg:
+          type: boolean
+          example: false
+          description: Whether to send Telegram notifications
+        user_id:
+          type: integer
+          format: int64
+          example: 10001
+          description: ID of the user who created the ticket
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-03-20T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-03-20T10:30:00Z"
+
+    CreateTicketRequest:
+      type: object
+      required:
+        - subject
+        - question
+        - full_name
+      properties:
+        subject:
+          type: string
+          example: "Technical Issue"
+          minLength: 3
+          maxLength: 100
+        question:
+          type: string
+          example: "I need help with..."
+          minLength: 10
+          maxLength: 2000
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        full_name:
+          type: string
+          example: "John Doe"
+          minLength: 2
+          maxLength: 100
+        phone:
+          type: string
+          example: "+77771234567"
+          pattern: "^\\+?[0-9]{10,15}$"
+        notify_email:
+          type: boolean
+          default: true
+        notify_tg:
+          type: boolean
+          default: false
+        file:
+          type: string
+          format: binary
+          description: Optional file attachment
+
+    UpdateStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [new, in_progress, resolved, closed]
+          example: "in_progress"
+        comment:
+          type: string
+          example: "Working on your issue"
+          maxLength: 1000
+
+    Response:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 5001
+        ticket_id:
+          type: integer
+          format: int64
+          example: 12345
+        admin_id:
+          type: integer
+          format: int64
+          example: 1001
+        message:
+          type: string
+          example: "We are investigating your issue..."
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-03-20T10:35:00Z"
+        attachments:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: List of attachment URLs
+          example: ["https://storage.example.com/files/attachment1.pdf"]
+
+paths:
+  /tickets:
+    post:
+      summary: Create a new ticket
+      description: Creates a new support ticket with optional file attachment
+      tags:
+        - tickets
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateTicketRequest'
+      responses:
+        '201':
+          description: Ticket successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List all tickets
+      description: Get a list of all tickets (admin only)
+      tags:
+        - tickets
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [new, in_progress, resolved, closed]
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [created_at_asc, created_at_desc, updated_at_asc, updated_at_desc]
+            default: created_at_desc
+      responses:
+        '200':
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    example: 100
+                  page:
+                    type: integer
+                    example: 1
+                  page_size:
+                    type: integer
+                    example: 10
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tickets/{id}:
+    get:
+      summary: Get ticket details
+      description: Get detailed information about a specific ticket
+      tags:
+        - tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Ticket details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tickets/user:
+    get:
+      summary: Get user's tickets
+      description: Get a list of tickets created by the current user
+      tags:
+        - tickets
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [new, in_progress, resolved, closed]
+      responses:
+        '200':
+          description: List of user's tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tickets/{id}/status:
+    put:
+      summary: Update ticket status
+      description: Update the status of a ticket (admin only)
+      tags:
+        - tickets
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStatusRequest'
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /responses/ticket/{id}:
+    post:
+      summary: Add response to ticket
+      description: Add a new response to a ticket (admin only)
+      tags:
+        - responses
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+                  example: "We are working on resolving your issue..."
+                file:
+                  type: string
+                  format: binary
+                  description: Optional file attachment
+      responses:
+        '201':
+          description: Response added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get ticket responses
+      description: Get all responses for a specific ticket
+      tags:
+        - responses
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: List of responses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  responses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Response'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
