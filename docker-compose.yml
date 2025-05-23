@@ -1,0 +1,214 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build: 
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: enic-api-gateway
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./api-gateway/.env
+    depends_on:
+      - auth-service
+      - news-service
+      - ticket-service
+    networks:
+      - enic-network
+
+  # Auth Service
+  auth-service:
+    build: 
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: enic-auth-service
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./auth-service/.env
+    volumes:
+      - ./auth-service/migrations:/app/migrations
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DB_HOST=auth-db
+      - REDIS_HOST=redis
+    networks:
+      - enic-network
+
+  # News Service
+  news-service:
+    build: 
+      context: ./news-service
+      dockerfile: Dockerfile
+    container_name: enic-news-service
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./news-service/.env
+    volumes:
+      - ./news-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    depends_on:
+      news-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DB_HOST=news-db
+      - REDIS_HOST=redis
+    networks:
+      - enic-network
+
+  # Ticket Service
+  ticket-service:
+    build: 
+      context: ./ticket-service
+      dockerfile: Dockerfile
+    container_name: enic-ticket-service
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./ticket-service/.env
+    volumes:
+      - ./ticket-service/migrations:/app/migrations
+    depends_on:
+      ticket-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      clamav:
+        condition: service_started
+    environment:
+      - DB_HOST=ticket-db
+      - REDIS_HOST=redis
+      - MINIO_ENDPOINT=minio:9000
+      - CLAMAV_HOST=clamav
+    networks:
+      - enic-network
+
+  # Databases
+  auth-db:
+    image: postgres:15-alpine
+    container_name: enic-auth-db
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
+      POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-auth_password}
+    volumes:
+      - auth-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER:-auth_user} -d ${AUTH_DB_NAME:-auth_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - enic-network
+
+  news-db:
+    image: postgres:15-alpine
+    container_name: enic-news-db
+    environment:
+      POSTGRES_DB: ${NEWS_DB_NAME:-news_db}
+      POSTGRES_USER: ${NEWS_DB_USER:-news_user}
+      POSTGRES_PASSWORD: ${NEWS_DB_PASSWORD:-news_password}
+    volumes:
+      - news-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NEWS_DB_USER:-news_user} -d ${NEWS_DB_NAME:-news_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - enic-network
+
+  ticket-db:
+    image: postgres:15-alpine
+    container_name: enic-ticket-db
+    environment:
+      POSTGRES_DB: ${TICKET_DB_NAME:-ticket_db}
+      POSTGRES_USER: ${TICKET_DB_USER:-ticket_user}
+      POSTGRES_PASSWORD: ${TICKET_DB_PASSWORD:-ticket_password}
+    volumes:
+      - ticket-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TICKET_DB_USER:-ticket_user} -d ${TICKET_DB_NAME:-ticket_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - enic-network
+
+  # Redis для кэширования и сессий
+  redis:
+    image: redis:7-alpine
+    container_name: enic-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_password}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - enic-network
+
+  # MinIO для хранения файлов
+  minio:
+    image: minio/minio
+    container_name: enic-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_password}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - enic-network
+
+  # ClamAV для сканирования файлов
+  clamav:
+    image: clamav/clamav:latest
+    container_name: enic-clamav
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav-data:/var/lib/clamav
+    networks:
+      - enic-network
+
+networks:
+  enic-network:
+    name: enic-network
+    driver: bridge
+
+volumes:
+  auth-data:
+    name: enic-auth-data
+  news-data:
+    name: enic-news-data
+  ticket-data:
+    name: enic-ticket-data
+  redis-data:
+    name: enic-redis-data
+  minio-data:
+    name: enic-minio-data
+  clamav-data:
+    name: enic-clamav-data

@@ -1,4 +1,4 @@
-# Stage 1: сборка приложения
+# Stage 1
 FROM golang:1.23-alpine AS builder
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app .
 
-# Stage 2: минимальный образ для запуска
+# Stage 2
 FROM alpine:latest
 WORKDIR /root/
 

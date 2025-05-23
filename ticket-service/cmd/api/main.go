@@ -12,6 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	_ "ticket-service/docs" // Import Swagger docs
 	"ticket-service/internal/config"
 	"ticket-service/internal/delivery/http/handlers"
 	"ticket-service/internal/delivery/http/router"
@@ -24,6 +25,14 @@ import (
 	"ticket-service/internal/logger"
 )
 
+// @title Ticket Service API
+// @version 1.0
+// @description API for managing support tickets and responses
+// @host localhost:8080
+// @BasePath /api/v1
+// @contact.name ENIC-KZ Support
+// @contact.email support@enic.kz
+// @schemes http https
 func main() {
 	// Инициализация конфигурации
 	cfg, err := config.LoadConfig()
@@ -141,4 +150,4 @@ func main() {
 	}
 
 	logger.Info("Server exiting")
-} 
+}
