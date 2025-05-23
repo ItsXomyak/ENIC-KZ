@@ -17,7 +17,7 @@ func LoadConfig() *Config {
 	return &Config{
 		AuthService: ServiceConfig{
 			Host: getEnv("AUTH_SERVICE_HOST", "localhost"),
-			Port: getEnv("AUTH_SERVICE_PORT", "8080"),
+			Port: getEnv("AUTH_SERVICE_PORT", "8081"),
 		},
 		NewsService: ServiceConfig{
 			Host: getEnv("NEWS_SERVICE_HOST", "localhost"),
@@ -25,7 +25,7 @@ func LoadConfig() *Config {
 		},
 		TicketService: ServiceConfig{
 			Host: getEnv("TICKET_SERVICE_HOST", "localhost"),
-			Port: getEnv("TICKET_SERVICE_PORT", "8082"),
+			Port: getEnv("TICKET_SERVICE_PORT", "8080"),
 		},
 	}
 }

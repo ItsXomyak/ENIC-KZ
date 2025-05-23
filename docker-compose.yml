@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     container_name: enic-api-gateway
     ports:
-      - '8000:8000'
+      - '8085:8085'
     env_file:
       - ./api-gateway/.env
     depends_on:
@@ -121,18 +121,17 @@ services:
   auth-db:
     image: postgres:16-alpine
     container_name: enic-auth-db
+    ports:
+      - '5432:5432'  # Auth service database
     environment:
       POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
       POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
       POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-auth_password}
     volumes:
       - auth-data:/var/lib/postgresql/data
+      - ./auth-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'pg_isready -U ${AUTH_DB_USER:-auth_user} -d ${AUTH_DB_NAME:-auth_db}',
-        ]
+      test: ['CMD-SHELL', 'pg_isready -U ${AUTH_DB_USER:-auth_user} -d ${AUTH_DB_NAME:-auth_db}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -142,18 +141,17 @@ services:
   news-db:
     image: postgres:16-alpine
     container_name: enic-news-db
+    ports:
+      - '5433:5432'  # News service database
     environment:
       POSTGRES_DB: ${NEWS_DB_NAME:-news_db}
       POSTGRES_USER: ${NEWS_DB_USER:-news_user}
       POSTGRES_PASSWORD: ${NEWS_DB_PASSWORD:-news_password}
     volumes:
       - news-data:/var/lib/postgresql/data
+      - ./news-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'pg_isready -U ${NEWS_DB_USER:-news_user} -d ${NEWS_DB_NAME:-news_db}',
-        ]
+      test: ['CMD-SHELL', 'pg_isready -U ${NEWS_DB_USER:-news_user} -d ${NEWS_DB_NAME:-news_db}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -163,18 +161,18 @@ services:
   ticket-db:
     image: postgres:16-alpine
     container_name: enic-ticket-db
+    ports:
+      - '5434:5432'  # Ticket service database
     environment:
       POSTGRES_DB: ${TICKET_DB_NAME:-ticket_db}
       POSTGRES_USER: ${TICKET_DB_USER:-ticket_user}
       POSTGRES_PASSWORD: ${TICKET_DB_PASSWORD:-ticket_password}
     volumes:
       - ticket-data:/var/lib/postgresql/data
+      - ./ticket-service/migrations/000001_init.up.sql:/docker-entrypoint-initdb.d/1_init.sql:ro
+      - ./ticket-service/migrations/000001_init.down.sql:/docker-entrypoint-initdb.d/2_cleanup.sql:ro
     healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'pg_isready -U ${TICKET_DB_USER:-ticket_user} -d ${TICKET_DB_NAME:-ticket_db}',
-        ]
+      test: ['CMD-SHELL', 'pg_isready -U ${TICKET_DB_USER:-ticket_user} -d ${TICKET_DB_NAME:-ticket_db}']
       interval: 10s
       timeout: 5s
       retries: 5
