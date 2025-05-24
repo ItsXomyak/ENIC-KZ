@@ -3,10 +3,10 @@ package mailer
 import (
 	"fmt"
 
+	"gopkg.in/mail.v2"
+
 	"authforge/config"
 	"authforge/internal/logger"
-
-	"gopkg.in/mail.v2"
 )
 
 type Mailer interface {

@@ -191,4 +191,13 @@ func getFileSize(reader io.Reader) (int64, error) {
 	}
 
 	return size, nil
+}
+
+// DownloadFile скачивает файл из S3
+func (s *s3Service) DownloadFile(ctx context.Context, filepath string) (io.ReadCloser, error) {
+	result, err := s.client.GetObject(ctx, s.bucketName, filepath, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object from S3: %w", err)
+	}
+	return result, nil
 } 
