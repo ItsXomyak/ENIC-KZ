@@ -15,6 +15,12 @@ type Claims struct {
 	Role   string `json:"role"`
 }
 
+const (
+	RoleUser      = "user"
+	RoleAdmin     = "admin"
+	RoleRootAdmin = "root_admin"
+)
+
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken, err := c.Cookie("access_token")
@@ -52,7 +58,8 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 		c.Set("userID", claims.UserID)
 		c.Set("role", claims.Role)
-		c.Set("isAdmin", claims.Role == "admin")
+		c.Set("isAdmin", claims.Role == RoleAdmin || claims.Role == RoleRootAdmin)
+		c.Set("isRootAdmin", claims.Role == RoleRootAdmin)
 
 		c.Next()
 	}
@@ -63,6 +70,18 @@ func AdminOnly() gin.HandlerFunc {
 		isAdmin, exists := c.Get("isAdmin")
 		if !exists || !isAdmin.(bool) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "access denied: admin only"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+func RootAdminOnly() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		isRootAdmin, exists := c.Get("isRootAdmin")
+		if !exists || !isRootAdmin.(bool) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "access denied: root admin only"})
 			c.Abort()
 			return
 		}

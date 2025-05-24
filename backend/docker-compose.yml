@@ -10,36 +10,33 @@ services:
     env_file:
       - ./api-gateway/.env
     depends_on:
-      - auth-service
+      - private-service
       - news-service
       - ticket-service
     networks:
       - enic-network
 
-  # Auth Service
-  auth-service:
+  # Private Service (formerly Auth Service)
+  private-service:
     build:
-      context: ./auth-service
+      context: ./private-service
       dockerfile: Dockerfile
-    container_name: enic-auth-service
+    container_name: enic-private-service
     ports:
       - '8080:8080'
     env_file:
-      - ./auth-service/.env
-    # Закомментируем проблемный volume пока не создадим директорию
-    # volumes:
-    #   - ./auth-service/migrations:/app/migrations
+      - ./private-service/.env
     depends_on:
-      auth-db:
+      private-db:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      - DB_HOST=auth-db
+      - DB_HOST=private-db
       - DB_PORT=5432
-      - DB_NAME=${AUTH_DB_NAME:-auth_db}
-      - DB_USER=${AUTH_DB_USER:-auth_user}
-      - DB_PASSWORD=${AUTH_DB_PASSWORD:-auth_password}
+      - DB_NAME=${PRIVATE_DB_NAME:-private_db}
+      - DB_USER=${PRIVATE_DB_USER:-private_user}
+      - DB_PASSWORD=${PRIVATE_DB_PASSWORD:-private_password}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
@@ -118,20 +115,20 @@ services:
       - enic-network
 
   # Databases
-  auth-db:
+  private-db:
     image: postgres:16-alpine
-    container_name: enic-auth-db
+    container_name: enic-private-db
     ports:
-      - '5432:5432'  # Auth service database
+      - '5432:5432'  # Private service database
     environment:
-      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
-      POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
-      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-auth_password}
+      POSTGRES_DB: ${PRIVATE_DB_NAME:-private_db}
+      POSTGRES_USER: ${PRIVATE_DB_USER:-private_user}
+      POSTGRES_PASSWORD: ${PRIVATE_DB_PASSWORD:-private_password}
     volumes:
-      - auth-data:/var/lib/postgresql/data
-      - ./auth-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - private-data:/var/lib/postgresql/data
+      - ./private-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${AUTH_DB_USER:-auth_user} -d ${AUTH_DB_NAME:-auth_db}']
+      test: ['CMD-SHELL', 'pg_isready -U ${PRIVATE_DB_USER:-private_user} -d ${PRIVATE_DB_NAME:-private_db}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -254,8 +251,8 @@ networks:
     driver: bridge
 
 volumes:
-  auth-data:
-    name: enic-auth-data
+  private-data:
+    name: enic-private-data
   news-data:
     name: enic-news-data
   ticket-data:

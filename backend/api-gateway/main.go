@@ -7,11 +7,25 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"api-gateway/config"
+	_ "api-gateway/docs"
 	"api-gateway/services"
 )
 
+// @title ENIC-KZ API Gateway
+// @version 1.0
+// @description API Gateway for ENIC-KZ microservices
+// @host localhost:8085
+// @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in cookie
+// @name access_token
+// @schemes http https
+// @produce json
+// @consumes json
 func main() {
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
@@ -33,6 +47,9 @@ func main() {
 
 	// Initialize services
 	services.SetupServices(router, cfg)
+
+	// Setup Swagger
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Start server
 	port := os.Getenv("PORT")

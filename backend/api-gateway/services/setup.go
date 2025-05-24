@@ -15,6 +15,92 @@ import (
 	"api-gateway/middleware"
 )
 
+// @Summary Register new user
+// @Description Register a new user in the system
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body docs.RegisterRequest true "Registration data"
+// @Success 200 {object} docs.APIResponse "Registration successful"
+// @Failure 400 {object} docs.ErrorResponse "Invalid input"
+// @Router /auth/register [post]
+
+// @Summary User login
+// @Description Authenticate user and get access token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body docs.LoginRequest true "Login credentials"
+// @Success 200 {object} docs.APIResponse "Login successful"
+// @Failure 401 {object} docs.ErrorResponse "Invalid credentials"
+// @Router /auth/login [post]
+
+// @Summary Verify 2FA code
+// @Description Verify two-factor authentication code
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body docs.Verify2FARequest true "2FA verification data"
+// @Success 200 {object} docs.APIResponse "2FA verification successful"
+// @Failure 400 {object} docs.ErrorResponse "Invalid code"
+// @Router /auth/verify-2fa [post]
+
+// @Summary List all users
+// @Description Get a list of all users (requires admin privileges)
+// @Tags admin
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} docs.User "List of users"
+// @Failure 401 {object} docs.ErrorResponse "Unauthorized"
+// @Failure 403 {object} docs.ErrorResponse "Forbidden"
+// @Router /admin/users [get]
+
+// @Summary Get system metrics
+// @Description Get system metrics and statistics (requires admin privileges)
+// @Tags admin
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} docs.Metrics "System metrics"
+// @Failure 401 {object} docs.ErrorResponse "Unauthorized"
+// @Failure 403 {object} docs.ErrorResponse "Forbidden"
+// @Router /admin/metrics [get]
+
+// @Summary Promote user to admin
+// @Description Promote a regular user to admin role (requires admin privileges)
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param input body docs.PromoteToAdminRequest true "User ID to promote"
+// @Success 200 {object} docs.APIResponse "User promoted successfully"
+// @Failure 401 {object} docs.ErrorResponse "Unauthorized"
+// @Failure 403 {object} docs.ErrorResponse "Forbidden"
+// @Router /admin/promote [post]
+
+// @Summary Delete user
+// @Description Delete a user from the system (requires admin privileges)
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param input body docs.DeleteUserRequest true "User ID to delete"
+// @Success 200 {object} docs.APIResponse "User deleted successfully"
+// @Failure 401 {object} docs.ErrorResponse "Unauthorized"
+// @Failure 403 {object} docs.ErrorResponse "Forbidden"
+// @Router /admin/users/delete [post]
+
+// @Summary Demote admin to user
+// @Description Demote an admin to regular user role (requires root_admin privileges)
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param input body docs.DemoteToUserRequest true "Admin ID to demote"
+// @Success 200 {object} docs.APIResponse "Admin demoted successfully"
+// @Failure 401 {object} docs.ErrorResponse "Unauthorized"
+// @Failure 403 {object} docs.ErrorResponse "Forbidden - requires root_admin"
+// @Router /admin/demote [post]
+
 func SetupServices(router *gin.Engine, cfg *config.Config) {
 	// Auth Service Routes
 	authGroup := router.Group("/api/v1/auth")
@@ -27,6 +113,28 @@ func SetupServices(router *gin.Engine, cfg *config.Config) {
 		authGroup.POST("/password-reset-confirm", authProxy)
 		authGroup.POST("/verify-2fa", authProxy)
 		authGroup.GET("/validate", middleware.AuthMiddleware(cfg), authProxy)
+	}
+
+	// Admin Routes (from private-service)
+	adminGroup := router.Group("/api/v1/admin")
+	adminGroup.Use(middleware.AuthMiddleware(cfg))
+	{
+		adminProxy := createProxy(cfg.AuthService)
+		// Routes for both admin and root_admin
+		adminGroup.Use(middleware.AdminOnly())
+		{
+			adminGroup.GET("/users", adminProxy)
+			adminGroup.GET("/metrics", adminProxy)
+			adminGroup.POST("/promote", adminProxy)
+			adminGroup.POST("/users/delete", adminProxy)
+		}
+
+		// Routes only for root_admin
+		rootAdminGroup := adminGroup.Group("")
+		rootAdminGroup.Use(middleware.RootAdminOnly())
+		{
+			rootAdminGroup.POST("/demote", adminProxy)
+		}
 	}
 
 	// News Service Routes
@@ -106,6 +214,9 @@ func createProxy(service config.ServiceConfig) gin.HandlerFunc {
 			}
 			if isAdmin, exists := c.Get("isAdmin"); exists {
 				req.Header.Set("X-Is-Admin", fmt.Sprint(isAdmin))
+			}
+			if isRootAdmin, exists := c.Get("isRootAdmin"); exists {
+				req.Header.Set("X-Is-Root-Admin", fmt.Sprint(isRootAdmin))
 			}
 			if strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
 				form, err := c.MultipartForm()

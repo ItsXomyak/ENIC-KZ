@@ -1,0 +1,291 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API Gateway for ENIC-KZ microservices",
+        "title": "ENIC-KZ API Gateway",
+        "version": "1.0"
+    },
+    "host": "localhost:8085",
+    "basePath": "/api/v1",
+    "schemes": ["http", "https"],
+    "consumes": ["application/json"],
+    "produces": ["application/json"],
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "access_token",
+            "in": "cookie"
+        }
+    },
+    "tags": [
+        {
+            "name": "auth",
+            "description": "Authentication and authorization operations"
+        },
+        {
+            "name": "admin",
+            "description": "Administrative operations"
+        },
+        {
+            "name": "news",
+            "description": "News management"
+        },
+        {
+            "name": "tickets",
+            "description": "Support ticket operations"
+        },
+        {
+            "name": "responses",
+            "description": "Ticket response operations"
+        }
+    ],
+    "paths": {
+        "/auth/register": {
+            "post": {
+                "tags": ["auth"],
+                "summary": "Register new user",
+                "description": "Register a new user in the system",
+                "parameters": [
+                    {
+                        "name": "input",
+                        "in": "body",
+                        "description": "Registration data",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Registration successful",
+                        "schema": {
+                            "$ref": "#/definitions/APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "RegisterRequest": {
+            "type": "object",
+            "required": ["email", "password", "first_name", "last_name"],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "strongPassword123"
+                },
+                "first_name": {
+                    "type": "string",
+                    "example": "John"
+                },
+                "last_name": {
+                    "type": "string",
+                    "example": "Doe"
+                }
+            }
+        },
+        "LoginRequest": {
+            "type": "object",
+            "required": ["email", "password"],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "strongPassword123"
+                }
+            }
+        },
+        "Verify2FARequest": {
+            "type": "object",
+            "required": ["code"],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "123456"
+                }
+            }
+        },
+        "User": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "first_name": {
+                    "type": "string",
+                    "example": "John"
+                },
+                "last_name": {
+                    "type": "string",
+                    "example": "Doe"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "user"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-01T00:00:00Z"
+                }
+            }
+        },
+        "APIResponse": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Operation completed successfully"
+                },
+                "data": {
+                    "type": "object"
+                }
+            }
+        },
+        "ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Invalid input data"
+                }
+            }
+        },
+        "Metrics": {
+            "type": "object",
+            "properties": {
+                "total_users": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "active_users": {
+                    "type": "integer",
+                    "example": 50
+                },
+                "total_tickets": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "resolved_tickets": {
+                    "type": "integer",
+                    "example": 150
+                }
+            }
+        },
+        "NewsItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Important Update"
+                },
+                "content": {
+                    "type": "string",
+                    "example": "Detailed news content..."
+                },
+                "author": {
+                    "type": "string",
+                    "example": "Admin Name"
+                },
+                "published_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-01T00:00:00Z"
+                }
+            }
+        },
+        "Ticket": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Technical Issue"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Detailed description of the issue..."
+                },
+                "status": {
+                    "type": "string",
+                    "example": "open"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-01T00:00:00Z"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-01T00:00:00Z"
+                }
+            }
+        },
+        "TicketResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "ticket_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "admin_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "content": {
+                    "type": "string",
+                    "example": "Response to your ticket..."
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-01T00:00:00Z"
+                }
+            }
+        }
+    }
+}

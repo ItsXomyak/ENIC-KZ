@@ -1,793 +1,785 @@
-openapi: 3.0.0
+swagger: "2.0"
 info:
+  description: API Gateway for ENIC-KZ microservices
   title: ENIC-KZ API Gateway
-  description: |
-    Единый API Gateway для сервисов ENIC-KZ, объединяющий:
-    - Сервис аутентификации (AuthForge API)
-    - Сервис новостей (News Service)
-    - Сервис поддержки (Ticket Service)
-  version: 1.0.0
-  contact:
-    name: ENIC-KZ Support
-    email: support@enic.kz
-
-servers:
-  - url: http://localhost:8085
-    description: Local Development Server
-
-components:
-  securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: access_token
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-  schemas:
-    # Auth Service Schemas
-    LoginRequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          format: password
-      required:
-        - email
-        - password
-
-    RegisterRequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          format: password
-        role:
-          type: string
-          enum: [user, admin]
-      required:
-        - email
-        - password
-        - role
-
-    RequestResetRequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-      required:
-        - email
-
-    ResetPasswordRequest:
-      type: object
-      properties:
-        token:
-          type: string
-        newPassword:
-          type: string
-          format: password
-      required:
-        - token
-        - newPassword
-
-    Verify2FARequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-        code:
-          type: string
-      required:
-        - email
-        - code
-
-    ResponseMessage:
-      type: object
-      properties:
-        message:
-          type: string
-
-    # News Service Schemas
-    News:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        category_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        publish_date:
-          type: string
-          format: date-time
-        translations:
-          type: array
-          items:
-            $ref: '#/components/schemas/NewsTranslation'
-
-    NewsTranslation:
-      type: object
-      properties:
-        id:
-          type: integer
-        news_id:
-          type: string
-        lang:
-          type: string
-          enum: [kz, ru, en]
-          description: '"kz", "ru", "en"'
-        title:
-          type: string
-        content:
-          type: string
-
-    # Ticket Service Schemas
-    Ticket:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        subject:
-          type: string
-        question:
-          type: string
-        email:
-          type: string
-          format: email
-        full_name:
-          type: string
-        phone:
-          type: string
-        status:
-          type: string
-          enum: [new, in_progress, resolved, closed]
-        notify_email:
-          type: boolean
-        notify_tg:
-          type: boolean
-        user_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-
-    CreateTicketRequest:
-      type: object
-      required:
-        - subject
-        - question
-        - full_name
-      properties:
-        subject:
-          type: string
-          minLength: 3
-          maxLength: 100
-        question:
-          type: string
-          minLength: 10
-          maxLength: 2000
-        email:
-          type: string
-          format: email
-        full_name:
-          type: string
-          minLength: 2
-          maxLength: 100
-        phone:
-          type: string
-          pattern: "^\\+?[0-9]{10,15}$"
-        notify_email:
-          type: boolean
-          default: true
-        notify_tg:
-          type: boolean
-          default: false
-        file:
-          type: string
-          format: binary
-
-    UpdateStatusRequest:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum: [new, in_progress, resolved, closed]
-        comment:
-          type: string
-          maxLength: 1000
-
-    Response:
-      type: object
-      properties:
-        id:
-          type: integer
-        ticket_id:
-          type: integer
-        admin_id:
-          type: integer
-        message:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        file_url:
-          type: string
-
-paths:
-  # Auth Service Routes
-  /api/v1/auth/login:
-    post:
-      tags: [Auth]
-      summary: Аутентификация пользователя
-      description: Authenticates user and sets access and refresh JWT cookies
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseMessage'
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized
-
-  /api/v1/auth/register:
-    post:
-      tags: [Auth]
-      summary: Регистрация нового пользователя
-      description: Creates a new user account and sends confirmation email
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseMessage'
-        '400':
-          description: Invalid input
-        '500':
-          description: Internal error
-
-  /api/v1/auth/confirm:
-    get:
-      tags: [Auth]
-      summary: Подтверждение аккаунта
-      description: Activates user account by confirmation token from query
-      parameters:
-        - name: token
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: OK
-        '400':
-          description: Invalid or expired token
-
-  /api/v1/auth/password-reset-request:
-    post:
-      tags: [Auth]
-      summary: Запрос на сброс пароля
-      description: Sends password reset instructions to email
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RequestResetRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseMessage'
-        '400':
-          description: Invalid request
-
-  /api/v1/auth/password-reset-confirm:
-    post:
-      tags: [Auth]
-      summary: Подтверждение сброса пароля
-      description: Resets password using provided token
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ResetPasswordRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseMessage'
-        '400':
-          description: Invalid or expired token
-
-  /api/v1/auth/verify-2fa:
-    post:
-      tags: [Auth]
-      summary: Проверка 2FA кода
-      description: Checks a 2FA code and, if valid, issues JWT cookies
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Verify2FARequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseMessage'
-        '400':
-          description: Invalid or expired code
-        '500':
-          description: Internal error
-
-  /api/v1/auth/validate:
-    get:
-      tags: [Auth]
-      summary: Проверка JWT токена
-      description: Returns user claims if token is valid
-      security:
-        - cookieAuth: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-        '401':
-          description: Unauthorized
-
-  # News Service Routes
-  /api/v1/news:
-    get:
-      tags: [News]
-      summary: Получение списка новостей
-      description: Возвращает список новостей с поддержкой фильтров
-      parameters:
-        - name: category
-          in: query
-          description: Код категории (например, general, education)
-          schema:
-            type: string
-        - name: from
-          in: query
-          description: 'Начальная дата публикации (формат: YYYY-MM-DD)'
-          schema:
-            type: string
-        - name: to
-          in: query
-          description: 'Конечная дата публикации (формат: YYYY-MM-DD)'
-          schema:
-            type: string
-        - name: limit
-          in: query
-          description: Максимальное количество новостей
-          schema:
-            type: integer
-            default: 10
-        - name: offset
-          in: query
-          description: Смещение от начала
-          schema:
-            type: integer
-            default: 0
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/News'
-        '500':
-          description: Internal Server Error
-
-    post:
-      tags: [News]
-      summary: Создание новости
-      description: Создаёт новую новость с переводами и категорией
-      security:
-        - cookieAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/News'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/News'
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-
-  /api/v1/news/{id}:
-    get:
-      tags: [News]
-      summary: Получение новости по ID
-      description: Возвращает одну новость по её UUID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/News'
-        '404':
-          description: Not Found
-
-    put:
-      tags: [News]
-      summary: Обновление новости
-      description: Обновляет существующую новость
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/News'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/News'
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-
-    delete:
-      tags: [News]
-      summary: Удаление новости
-      description: Удаляет новость по её UUID
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: No Content
-        '500':
-          description: Internal Server Error
-
-  # Ticket Service Routes
-  /api/v1/tickets:
-    post:
-      tags: [Tickets]
-      summary: Создание тикета
-      description: Creates a new support ticket with optional file attachment
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/CreateTicketRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Ticket'
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-
-    get:
-      tags: [Tickets]
-      summary: Список всех тикетов
-      description: Get a list of all tickets (admin only)
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: page_size
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [new, in_progress, resolved, closed]
-        - name: sort
-          in: query
-          schema:
-            type: string
-            enum: [created_at_asc, created_at_desc, updated_at_asc, updated_at_desc]
-            default: created_at_desc
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  total:
-                    type: integer
-                  tickets:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Ticket'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-
-  /api/v1/tickets/{id}:
-    get:
-      tags: [Tickets]
-      summary: Получение тикета по ID
-      description: Get detailed information about a specific ticket
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Ticket'
-        '404':
-          description: Not Found
-
-  /api/v1/tickets/user:
-    get:
-      tags: [Tickets]
-      summary: Тикеты текущего пользователя
-      description: Get a list of tickets created by the current user
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: page_size
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [new, in_progress, resolved, closed]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  total:
-                    type: integer
-                  tickets:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Ticket'
-        '401':
-          description: Unauthorized
-
-  /api/v1/tickets/{id}/status:
-    put:
-      tags: [Tickets]
-      summary: Обновление статуса тикета
-      description: Update the status of a ticket (admin only)
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateStatusRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Ticket'
-        '400':
-          description: Bad Request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-
-  /api/v1/responses/ticket/{id}:
-    post:
-      tags: [Responses]
-      summary: Добавление ответа на тикет
-      description: Add a new response to a ticket (admin only)
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - message
-              properties:
-                message:
-                  type: string
-                  minLength: 1
-                  maxLength: 2000
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Response'
-        '400':
-          description: Bad Request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-
-    get:
-      tags: [Responses]
-      summary: Получение ответов на тикет
-      description: Get all responses for a specific ticket
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: page_size
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  total:
-                    type: integer
-                  responses:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Response'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-
+  version: "1.0"
+host: localhost:8085
+basePath: /api/v1
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
 tags:
-  - name: Auth
-    description: Операции аутентификации и авторизации
-  - name: News
-    description: Управление новостями
-  - name: Tickets
-    description: Система поддержки пользователей
-  - name: Responses
-    description: Управление ответами на тикеты 
+  - name: auth
+    description: Authentication and authorization operations
+  - name: admin
+    description: Administrative operations
+  - name: news
+    description: News management
+  - name: tickets
+    description: Support ticket operations
+  - name: responses
+    description: Ticket response operations
+paths:
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Register new user
+      description: Register a new user in the system
+      parameters:
+        - name: input
+          in: body
+          description: Registration data
+          required: true
+          schema:
+            $ref: "#/definitions/RegisterRequest"
+      responses:
+        200:
+          description: Registration successful
+          schema:
+            $ref: "#/definitions/APIResponse"
+        400:
+          description: Invalid input
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Login user
+      description: Authenticate user and get access token
+      parameters:
+        - name: input
+          in: body
+          description: Login credentials
+          required: true
+          schema:
+            $ref: "#/definitions/LoginRequest"
+      responses:
+        200:
+          description: Login successful
+          schema:
+            $ref: "#/definitions/APIResponse"
+        401:
+          description: Invalid credentials
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /auth/verify-2fa:
+    post:
+      tags:
+        - auth
+      summary: Verify 2FA code
+      description: Verify two-factor authentication code
+      parameters:
+        - name: input
+          in: body
+          description: 2FA verification code
+          required: true
+          schema:
+            $ref: "#/definitions/Verify2FARequest"
+      responses:
+        200:
+          description: 2FA verification successful
+          schema:
+            $ref: "#/definitions/APIResponse"
+        400:
+          description: Invalid code
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /auth/confirm:
+    post:
+      tags:
+        - auth
+      summary: Confirm account
+      description: Confirm user account after registration
+      parameters:
+        - name: input
+          in: body
+          description: Confirmation data
+          required: true
+          schema:
+            type: object
+            properties:
+              token:
+                type: string
+                example: "confirmation-token"
+      responses:
+        200:
+          description: Account confirmed successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+        400:
+          description: Invalid token
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /auth/password-reset-request:
+    post:
+      tags:
+        - auth
+      summary: Request password reset
+      description: Request a password reset link
+      parameters:
+        - name: input
+          in: body
+          description: Password reset request data
+          required: true
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+                example: "user@example.com"
+      responses:
+        200:
+          description: Password reset link sent
+          schema:
+            $ref: "#/definitions/APIResponse"
+        400:
+          description: Invalid email
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /auth/password-reset-confirm:
+    post:
+      tags:
+        - auth
+      summary: Reset password
+      description: Reset password using token
+      parameters:
+        - name: input
+          in: body
+          description: Password reset data
+          required: true
+          schema:
+            type: object
+            properties:
+              token:
+                type: string
+                example: "reset-token"
+              new_password:
+                type: string
+                example: "newStrongPassword123"
+      responses:
+        200:
+          description: Password reset successful
+          schema:
+            $ref: "#/definitions/APIResponse"
+        400:
+          description: Invalid token or password
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /auth/validate:
+    get:
+      tags:
+        - auth
+      summary: Validate token
+      description: Validate authentication token
+      responses:
+        200:
+          description: Token is valid
+          schema:
+            $ref: "#/definitions/APIResponse"
+        401:
+          description: Invalid token
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /admin/metrics:
+    get:
+      tags:
+        - admin
+      summary: Get system metrics
+      description: Get various system metrics and statistics
+      responses:
+        200:
+          description: Metrics retrieved successfully
+          schema:
+            $ref: "#/definitions/Metrics"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /admin/users:
+    get:
+      tags:
+        - admin
+      summary: List users
+      description: Get list of all users (admin only)
+      responses:
+        200:
+          description: Users retrieved successfully
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/User"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /admin/promote:
+    post:
+      tags:
+        - admin
+      summary: Promote user to admin
+      description: Promote a user to admin role (admin only)
+      parameters:
+        - name: input
+          in: body
+          description: User promotion data
+          required: true
+          schema:
+            type: object
+            properties:
+              user_id:
+                type: integer
+                example: 1
+      responses:
+        200:
+          description: User promoted successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /admin/demote:
+    post:
+      tags:
+        - admin
+      summary: Demote admin to user
+      description: Demote an admin to user role (root admin only)
+      parameters:
+        - name: input
+          in: body
+          description: User demotion data
+          required: true
+          schema:
+            type: object
+            properties:
+              user_id:
+                type: integer
+                example: 1
+      responses:
+        200:
+          description: User demoted successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /admin/users/delete:
+    delete:
+      tags:
+        - admin
+      summary: Delete user
+      description: Delete a user from the system (admin only)
+      parameters:
+        - name: input
+          in: body
+          description: User deletion data
+          required: true
+          schema:
+            type: object
+            properties:
+              user_id:
+                type: integer
+                example: 1
+      responses:
+        200:
+          description: User deleted successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /news:
+    get:
+      tags:
+        - news
+      summary: Get all news
+      description: Get list of all news items
+      responses:
+        200:
+          description: News retrieved successfully
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/NewsItem"
+    post:
+      tags:
+        - news
+      summary: Create news item
+      description: Create a new news item
+      parameters:
+        - name: input
+          in: body
+          description: News item data
+          required: true
+          schema:
+            $ref: "#/definitions/NewsItem"
+      responses:
+        201:
+          description: News item created successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /news/{id}:
+    get:
+      tags:
+        - news
+      summary: Get news by ID
+      description: Get a specific news item by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+          description: ID of the news item
+      responses:
+        200:
+          description: News item retrieved successfully
+          schema:
+            $ref: "#/definitions/NewsItem"
+        404:
+          description: News item not found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    put:
+      tags:
+        - news
+      summary: Update news
+      description: Update an existing news item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+          description: ID of the news item
+        - name: input
+          in: body
+          description: Updated news data
+          required: true
+          schema:
+            $ref: "#/definitions/NewsItem"
+      responses:
+        200:
+          description: News item updated successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+        404:
+          description: News item not found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    delete:
+      tags:
+        - news
+      summary: Delete news
+      description: Delete a news item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+          description: ID of the news item
+      responses:
+        200:
+          description: News item deleted successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+        404:
+          description: News item not found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /tickets:
+    get:
+      tags:
+        - tickets
+      summary: Get all tickets
+      description: Get list of all support tickets
+      responses:
+        200:
+          description: Tickets retrieved successfully
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Ticket"
+    post:
+      tags:
+        - tickets
+      summary: Create ticket
+      description: Create a new support ticket
+      parameters:
+        - name: input
+          in: body
+          description: Ticket data
+          required: true
+          schema:
+            $ref: "#/definitions/Ticket"
+      responses:
+        201:
+          description: Ticket created successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+
+  /tickets/{id}:
+    get:
+      tags:
+        - tickets
+      summary: Get ticket by ID
+      description: Get a specific ticket by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+          description: ID of the ticket
+      responses:
+        200:
+          description: Ticket retrieved successfully
+          schema:
+            $ref: "#/definitions/Ticket"
+        404:
+          description: Ticket not found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /tickets/user:
+    get:
+      tags:
+        - tickets
+      summary: Get user tickets
+      description: Get all tickets for the authenticated user
+      responses:
+        200:
+          description: User tickets retrieved successfully
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Ticket"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /tickets/user/{id}/history:
+    get:
+      tags:
+        - tickets
+      summary: Get ticket history
+      description: Get history of a specific ticket
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+          description: ID of the ticket
+      responses:
+        200:
+          description: Ticket history retrieved successfully
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Ticket"
+        404:
+          description: Ticket not found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /tickets/{id}/status:
+    put:
+      tags:
+        - tickets
+      summary: Update ticket status
+      description: Update the status of a ticket (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+          description: ID of the ticket
+        - name: input
+          in: body
+          description: New status data
+          required: true
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "resolved"
+      responses:
+        200:
+          description: Ticket status updated successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+        404:
+          description: Ticket not found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /tickets/search:
+    get:
+      tags:
+        - tickets
+      summary: Search tickets
+      description: Search tickets by various criteria (admin only)
+      parameters:
+        - name: query
+          in: query
+          required: false
+          type: string
+          description: Search query
+        - name: status
+          in: query
+          required: false
+          type: string
+          description: Ticket status
+      responses:
+        200:
+          description: Search results retrieved successfully
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Ticket"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /responses/ticket/{id}:
+    get:
+      tags:
+        - responses
+      summary: Get ticket responses
+      description: Get all responses for a specific ticket
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+          description: ID of the ticket
+      responses:
+        200:
+          description: Responses retrieved successfully
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/TicketResponse"
+        404:
+          description: Ticket not found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    post:
+      tags:
+        - responses
+      summary: Create ticket response
+      description: Create a new response for a ticket (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+          description: ID of the ticket
+        - name: input
+          in: body
+          description: Response data
+          required: true
+          schema:
+            $ref: "#/definitions/TicketResponse"
+      responses:
+        201:
+          description: Response created successfully
+          schema:
+            $ref: "#/definitions/APIResponse"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        404:
+          description: Ticket not found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+definitions:
+  RegisterRequest:
+    type: object
+    required:
+      - email
+      - password
+      - first_name
+      - last_name
+    properties:
+      email:
+        type: string
+        example: user@example.com
+      password:
+        type: string
+        example: strongPassword123
+      first_name:
+        type: string
+        example: John
+      last_name:
+        type: string
+        example: Doe
+  LoginRequest:
+    type: object
+    required:
+      - email
+      - password
+    properties:
+      email:
+        type: string
+        example: user@example.com
+      password:
+        type: string
+        example: strongPassword123
+  Verify2FARequest:
+    type: object
+    required:
+      - code
+    properties:
+      code:
+        type: string
+        example: "123456"
+  User:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      email:
+        type: string
+        example: user@example.com
+      first_name:
+        type: string
+        example: John
+      last_name:
+        type: string
+        example: Doe
+      role:
+        type: string
+        example: user
+      created_at:
+        type: string
+        format: date-time
+        example: "2024-01-01T00:00:00Z"
+  APIResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        example: true
+      message:
+        type: string
+        example: Operation completed successfully
+      data:
+        type: object
+  ErrorResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        example: false
+      error:
+        type: string
+        example: Invalid input data
+  Metrics:
+    type: object
+    properties:
+      total_users:
+        type: integer
+        example: 100
+      active_users:
+        type: integer
+        example: 50
+      total_tickets:
+        type: integer
+        example: 200
+      resolved_tickets:
+        type: integer
+        example: 150
+  NewsItem:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      title:
+        type: string
+        example: Important Update
+      content:
+        type: string
+        example: Detailed news content...
+      author:
+        type: string
+        example: Admin Name
+      published_at:
+        type: string
+        format: date-time
+        example: "2024-01-01T00:00:00Z"
+  Ticket:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      user_id:
+        type: integer
+        example: 1
+      subject:
+        type: string
+        example: Technical Issue
+      description:
+        type: string
+        example: Detailed description of the issue...
+      status:
+        type: string
+        example: open
+      created_at:
+        type: string
+        format: date-time
+        example: "2024-01-01T00:00:00Z"
+      updated_at:
+        type: string
+        format: date-time
+        example: "2024-01-01T00:00:00Z"
+  TicketResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      ticket_id:
+        type: integer
+        example: 1
+      admin_id:
+        type: integer
+        example: 1
+      content:
+        type: string
+        example: Response to your ticket...
+      created_at:
+        type: string
+        format: date-time
+        example: "2024-01-01T00:00:00Z"

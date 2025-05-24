@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"news-service/internal/config"
@@ -36,7 +35,5 @@ func InitPostgres(cfg *config.Config) {
 	if err := pool.Ping(ctx); err != nil {
 		logger.Error("Unable to ping database: ", err)
 	}
-
-	log.Println("Connected to PostgreSQL")
 	DB = pool
 }
