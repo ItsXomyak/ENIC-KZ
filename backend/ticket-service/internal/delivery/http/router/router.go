@@ -17,7 +17,11 @@ func SetupRouter(
 	responseHandler *handlers.ResponseHandler,
 	redisClient *redis.Client,
 ) *gin.Engine {
-	router := gin.Default()
+	// Используем gin.New() вместо gin.Default() чтобы убрать стандартные логи
+	router := gin.New()
+
+	// Добавляем только recovery middleware для обработки паник
+	router.Use(gin.Recovery())
 
 	// Добавляем Prometheus middleware
 	router.Use(middleware.PrometheusMiddleware())
@@ -25,7 +29,7 @@ func SetupRouter(
 	// Добавляем rate limiter
 	rateLimiterConfig := middleware.RateLimiterConfig{
 		RequestsPerMinute: 60, // 1 запрос в секунду
-		BurstSize:        10,  // Разрешаем до 10 запросов одновременно
+		BurstSize:         10, // Разрешаем до 10 запросов одновременно
 	}
 	router.Use(middleware.RedisRateLimiter(redisClient, rateLimiterConfig))
 
@@ -73,4 +77,4 @@ func SetupRouter(
 	}
 
 	return router
-} 
+}

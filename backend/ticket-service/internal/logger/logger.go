@@ -24,7 +24,6 @@ func Warn(args ...interface{}) {
 	log.Warn(args...)
 }
 
-
 func Debug(args ...interface{}) {
 	log.Debug(args...)
 }

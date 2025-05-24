@@ -36,7 +36,6 @@ func NewTicketHandler(ticketService *services.TicketService) *TicketHandler {
 func (h *TicketHandler) CreateTicket(c *gin.Context) {
 	var req models.CreateTicketRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Error("Failed to bind request", "error", err)
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid request format"})
 		return
 	}
@@ -62,14 +61,14 @@ func (h *TicketHandler) CreateTicket(c *gin.Context) {
 
 	// Создаём тикет
 	ticket := &models.Ticket{
-		Subject:    req.Subject,
-		Question:   req.Question,
-		Email:      req.Email,
-		FullName:   req.FullName,
-		Phone:      req.Phone,
+		Subject:     req.Subject,
+		Question:    req.Question,
+		Email:       req.Email,
+		FullName:    req.FullName,
+		Phone:       req.Phone,
 		NotifyEmail: req.NotifyEmail,
-		NotifyTG:   req.NotifyTG,
-		Status:     models.TicketStatusNew,
+		NotifyTG:    req.NotifyTG,
+		Status:      models.TicketStatusNew,
 	}
 
 	if exists {
@@ -333,5 +332,5 @@ type ErrorResponse struct {
 // UpdateStatusRequest представляет структуру запроса на обновление статуса
 type UpdateStatusRequest struct {
 	Status  models.TicketStatus `json:"status" binding:"required"`
-	Comment *string            `json:"comment,omitempty"`
-} 
+	Comment *string             `json:"comment,omitempty"`
+}

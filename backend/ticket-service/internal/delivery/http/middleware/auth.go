@@ -23,7 +23,6 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := c.Cookie(authCookieName)
 		if err != nil {
-			logger.Warn("No auth token in cookie")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			c.Abort()
 			return
@@ -50,7 +49,6 @@ func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		isAdmin, exists := c.Get(isAdminKey)
 		if !exists || !isAdmin.(bool) {
-			logger.Warn("Access denied: user is not admin")
 			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 			c.Abort()
 			return
@@ -140,4 +138,4 @@ func validateToken(tokenString string) (*Claims, error) {
 	}
 
 	return claims, nil
-} 
+}
