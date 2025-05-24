@@ -1,0 +1,94 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'api-gateway/**'
+      - 'auth-service/**'
+      - 'news-service/**'
+      - 'ticket-service/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'api-gateway/**'
+      - 'auth-service/**'
+      - 'news-service/**'
+      - 'ticket-service/**'
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      minio:
+        image: minio/minio
+        ports:
+          - 9000:9000
+          - 9001:9001
+        env:
+          MINIO_ROOT_USER: minio_admin
+          MINIO_ROOT_PASSWORD: strong_minio_password
+        options: >-
+          --health-cmd "mc ready local"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Test API Gateway
+        working-directory: ./api-gateway
+        run: |
+          go mod download
+          go test -v ./...
+
+      - name: Test Auth Service
+        working-directory: ./auth-service
+        run: |
+          go mod download
+          go test -v ./...
+
+      - name: Test News Service
+        working-directory: ./news-service
+        run: |
+          go mod download
+          go test -v ./...
+
+      - name: Test Ticket Service
+        working-directory: ./ticket-service
+        run: |
+          go mod download
+          go test -v ./...
