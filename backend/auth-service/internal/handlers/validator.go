@@ -3,6 +3,7 @@ package handlers
 import (
 	"authforge/config"
 	"authforge/internal/logger"
+	"authforge/internal/metrics"
 	"authforge/internal/services"
 	"encoding/json"
 	"net/http"
@@ -15,11 +16,11 @@ type ValidateHandler struct {
 
 // ValidateToken godoc
 // @Summary Validate JWT token from cookie
-// @Description Returns user claims if token is valid
+// @Description Validates the access token from cookie and returns user claims
 // @Tags auth
 // @Produce json
-// @Success 200 {object} map[string]interface{}
-// @Failure 401 {string} string "Unauthorized"
+// @Success 200 {object} map[string]interface{} "User claims including user_id, role, and expiresAt"
+// @Failure 401 {object} ResponseMessage "Missing or invalid token"
 // @Router /auth/validate [get]
 func (h *AuthHandler) ValidateToken(w http.ResponseWriter, r *http.Request) {
 	accessCookie, err := r.Cookie(config.AccessTokenCookieName)
@@ -47,14 +48,14 @@ type Verify2FARequest struct {
 
 // Verify2FA godoc
 // @Summary Verify 2FA code for admin
-// @Description Checks a 2FA code and, if valid, issues JWT cookies
+// @Description Verifies 2FA code and issues JWT tokens in HTTP-only cookies if valid
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param input body Verify2FARequest true "Email and 2FA code"
-// @Success 200 {object} ResponseMessage
-// @Failure 400 {string} string "Invalid or expired code"
-// @Failure 500 {string} string "Internal error"
+// @Success 200 {object} ResponseMessage "2FA verification successful"
+// @Failure 400 {object} ResponseMessage "Invalid code or expired code"
+// @Failure 500 {object} ResponseMessage "Internal server error"
 // @Router /auth/verify-2fa [post]
 func (h *AuthHandler) Verify2FA(w http.ResponseWriter, r *http.Request) {
 	logger.Info("2FA verification request received")
@@ -75,6 +76,8 @@ func (h *AuthHandler) Verify2FA(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	metrics.TwoFactorVerificationCounter.Inc()
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     config.AccessTokenCookieName,

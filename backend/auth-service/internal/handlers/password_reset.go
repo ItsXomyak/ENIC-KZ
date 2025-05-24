@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"authforge/internal/logger"
+	"authforge/internal/metrics"
 	"authforge/internal/services"
 )
 
@@ -28,13 +29,13 @@ type RequestResetResponse struct {
 
 // RequestPasswordReset godoc
 // @Summary Request password reset
-// @Description Sends password reset instructions to email
+// @Description Sends password reset instructions to the provided email address
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param input body RequestResetRequest true "Email address"
-// @Success 200 {object} RequestResetResponse
-// @Failure 400 {string} string "Invalid request"
+// @Success 200 {object} RequestResetResponse "Success message (sent regardless of email existence for security)"
+// @Failure 400 {object} ResponseMessage "Invalid request format"
 // @Router /auth/password-reset-request [post]
 func (h *PasswordResetHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Password reset request received")
@@ -58,6 +59,7 @@ func (h *PasswordResetHandler) RequestPasswordReset(w http.ResponseWriter, r *ht
 		return
 	}
 
+	metrics.PasswordResetRequestCounter.Inc()
 	logger.Info("Password reset instructions sent for email: ", req.Email)
 	response := RequestResetResponse{
 		Message: "If this email is registered, password reset instructions have been sent.",
@@ -77,13 +79,13 @@ type ResetPasswordResponse struct {
 
 // ResetPassword godoc
 // @Summary Reset password
-// @Description Resets password using provided token
+// @Description Sets a new password using the provided reset token
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param input body ResetPasswordRequest true "Reset token and new password"
-// @Success 200 {object} ResetPasswordResponse
-// @Failure 400 {string} string "Invalid or expired token"
+// @Success 200 {object} ResetPasswordResponse "Password reset success message"
+// @Failure 400 {object} ResponseMessage "Invalid token, expired token, or invalid password format"
 // @Router /auth/password-reset-confirm [post]
 func (h *PasswordResetHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Reset password request received")
@@ -107,6 +109,7 @@ func (h *PasswordResetHandler) ResetPassword(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	metrics.PasswordResetCompletedCounter.Inc()
 	logger.Info("Password reset successfully")
 	response := ResetPasswordResponse{
 		Message: "Password has been reset successfully.",

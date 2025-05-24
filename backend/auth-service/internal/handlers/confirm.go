@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"authforge/internal/logger"
+	"authforge/internal/metrics"
 	"authforge/internal/services"
 )
 
@@ -20,12 +21,12 @@ func NewConfirmHandler(authService services.AuthService) *ConfirmHandler {
 
 // ConfirmAccount godoc
 // @Summary Confirm user account
-// @Description Activates user account by confirmation token from query
+// @Description Activates a user account using the confirmation token from email
 // @Tags auth
 // @Produce json
-// @Param token query string true "Confirmation token"
-// @Success 200 {object} map[string]string
-// @Failure 400 {string} string "Invalid or expired token"
+// @Param token query string true "Confirmation token from email"
+// @Success 200 {object} ResponseMessage "Account activation success message"
+// @Failure 400 {object} ResponseMessage "Invalid token, expired token, or already confirmed account"
 // @Router /auth/confirm [get]
 func (h *ConfirmHandler) ConfirmAccount(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Confirm account request received")
@@ -43,6 +44,7 @@ func (h *ConfirmHandler) ConfirmAccount(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	metrics.AccountConfirmationCounter.Inc()
 	logger.Info("Account confirmed successfully")
 	response := map[string]string{"message": "Account activated successfully."}
 	w.Header().Set("Content-Type", "application/json")

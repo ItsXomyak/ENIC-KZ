@@ -7,6 +7,7 @@ import (
 
 	"authforge/config"
 	"authforge/internal/logger"
+	"authforge/internal/metrics"
 	"authforge/internal/models"
 	"authforge/internal/services"
 )
@@ -26,7 +27,6 @@ func NewAuthHandler(authService services.AuthService, cfg *config.Config) *AuthH
 type RegisterRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	Role     string `json:"role"`
 }
 
 type ResponseMessage struct {
@@ -40,18 +40,22 @@ type ResponseMessage struct {
 // @Accept json
 // @Produce json
 // @Param input body RegisterRequest true "User credentials"
-// @Success 200 {object} ResponseMessage
-// @Failure 400 {string} string "Invalid input"
-// @Failure 500 {string} string "Internal error"
+// @Success 200 {object} ResponseMessage "Registration successful message"
+// @Failure 400 {object} ResponseMessage "Invalid input or missing fields"
+// @Failure 500 {object} ResponseMessage "Internal server error"
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Registration request received")
+
 	var req RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
 		logger.Error("Invalid request payload: ", err)
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+
 	if req.Email == "" || req.Password == "" {
 		logger.Error("Email and password are required")
 		http.Error(w, "Email and password required", http.StatusBadRequest)
@@ -60,7 +64,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	user := &models.User{
 		Email: req.Email,
-		Role:  models.UserRole(req.Role),
+		Role:  models.RoleUser,
 	}
 
 	if err := h.AuthService.RegisterUser(user, req.Password); err != nil {
@@ -69,10 +73,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.RegistrationCounter.Inc()
 	logger.Info("User registered successfully: ", req.Email)
-	resp := ResponseMessage{Message: "Registration successful. Please check your email to activate your account."}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(ResponseMessage{
+		Message: "Registration successful. Please check your email to activate your account.",
+	})
 }
 
 type LoginRequest struct {
@@ -87,14 +93,14 @@ type LoginResponse struct {
 
 // Login godoc
 // @Summary Log in a user
-// @Description Authenticates user and sets access and refresh JWT cookies
+// @Description Authenticates user and returns JWT tokens in HTTP-only cookies
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param input body LoginRequest true "Email and password"
-// @Success 200 {object} ResponseMessage
-// @Failure 400 {string} string "Invalid input"
-// @Failure 401 {string} string "Unauthorized"
+// @Success 200 {object} ResponseMessage "Login successful message"
+// @Failure 400 {object} ResponseMessage "Invalid input or missing fields"
+// @Failure 401 {object} ResponseMessage "Invalid credentials or account not confirmed"
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Login request received")
@@ -116,6 +122,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
+
+	metrics.LoginCounter.Inc()
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     config.AccessTokenCookieName,

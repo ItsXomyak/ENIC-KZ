@@ -71,25 +71,11 @@ func (s *authService) RegisterUser(user *models.User, password string) error {
 		logger.Error("Error hashing password for ", user.Email, ": ", err)
 		return err
 	}
-
 	user.PasswordHash = string(hashedPassword)
+
 	user.IsActive = false
-
-	if user.Role == "" {
-		user.Role = "user"
-	}
-
-	if user.Role == models.RoleAdmin {
-		user.Is2FAEnabled = true
-	} else {
-		user.Is2FAEnabled = false
-	}
-
-	if user.Role != models.RoleUser && user.Role != models.RoleAdmin {
-		logger.Error("Invalid role specified for user: ", user.Email)
-		return errors.New("invalid role")
-	}
-
+	user.Role = models.RoleUser
+	user.Is2FAEnabled = false
 	user.ID = uuid.New()
 
 	if err := s.userRepo.CreateUser(user); err != nil {
@@ -102,13 +88,11 @@ func (s *authService) RegisterUser(user *models.User, password string) error {
 		logger.Error("Error generating confirmation token: ", err)
 		return err
 	}
-
 	token := &models.ConfirmationToken{
 		UserID:    user.ID,
 		Token:     confirmationToken,
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
-
 	if err := s.tokenRepo.CreateToken(token); err != nil {
 		logger.Error("Error saving confirmation token for user ", user.Email, ": ", err)
 		return err
@@ -118,7 +102,6 @@ func (s *authService) RegisterUser(user *models.User, password string) error {
 		logger.Error("Error sending confirmation email to ", user.Email, ": ", err)
 		return err
 	}
-
 	return nil
 }
 

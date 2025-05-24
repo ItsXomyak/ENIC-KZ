@@ -10,12 +10,24 @@ import (
 	"authforge/internal/handlers/routes"
 	"authforge/internal/logger"
 	"authforge/internal/mailer"
+	"authforge/internal/metrics"
 	"authforge/internal/repository"
 	"authforge/internal/services"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func Run() {
 	logger.Init()
+	metrics.InitMetrics()
+
+	go func() {
+		logger.Info("Metrics server started on :2112")
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":2112", nil); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	cfg, err := config.LoadConfig(".")
 	if err != nil {

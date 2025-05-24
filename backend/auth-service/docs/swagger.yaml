@@ -13,8 +13,6 @@ definitions:
         type: string
       password:
         type: string
-      role:
-        type: string
     type: object
   handlers.RequestResetRequest:
     properties:
@@ -59,9 +57,9 @@ info:
 paths:
   /auth/confirm:
     get:
-      description: Activates user account by confirmation token from query
+      description: Activates a user account using the confirmation token from email
       parameters:
-      - description: Confirmation token
+      - description: Confirmation token from email
         in: query
         name: token
         required: true
@@ -70,15 +68,13 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Account activation success message
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ResponseMessage'
         "400":
-          description: Invalid or expired token
+          description: Invalid token, expired token, or already confirmed account
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
       summary: Confirm user account
       tags:
       - auth
@@ -86,7 +82,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates user and sets access and refresh JWT cookies
+      description: Authenticates user and returns JWT tokens in HTTP-only cookies
       parameters:
       - description: Email and password
         in: body
@@ -98,17 +94,17 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Login successful message
           schema:
             $ref: '#/definitions/handlers.ResponseMessage'
         "400":
-          description: Invalid input
+          description: Invalid input or missing fields
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
         "401":
-          description: Unauthorized
+          description: Invalid credentials or account not confirmed
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
       summary: Log in a user
       tags:
       - auth
@@ -116,7 +112,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Resets password using provided token
+      description: Sets a new password using the provided reset token
       parameters:
       - description: Reset token and new password
         in: body
@@ -128,13 +124,13 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Password reset success message
           schema:
             $ref: '#/definitions/handlers.ResetPasswordResponse'
         "400":
-          description: Invalid or expired token
+          description: Invalid token, expired token, or invalid password format
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
       summary: Reset password
       tags:
       - auth
@@ -142,7 +138,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Sends password reset instructions to email
+      description: Sends password reset instructions to the provided email address
       parameters:
       - description: Email address
         in: body
@@ -154,13 +150,13 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Success message (sent regardless of email existence for security)
           schema:
             $ref: '#/definitions/handlers.RequestResetResponse'
         "400":
-          description: Invalid request
+          description: Invalid request format
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
       summary: Request password reset
       tags:
       - auth
@@ -180,35 +176,35 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Registration successful message
           schema:
             $ref: '#/definitions/handlers.ResponseMessage'
         "400":
-          description: Invalid input
+          description: Invalid input or missing fields
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
       summary: Register a new user
       tags:
       - auth
   /auth/validate:
     get:
-      description: Returns user claims if token is valid
+      description: Validates the access token from cookie and returns user claims
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: User claims including user_id, role, and expiresAt
           schema:
             additionalProperties: true
             type: object
         "401":
-          description: Unauthorized
+          description: Missing or invalid token
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
       summary: Validate JWT token from cookie
       tags:
       - auth
@@ -216,7 +212,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Checks a 2FA code and, if valid, issues JWT cookies
+      description: Verifies 2FA code and issues JWT tokens in HTTP-only cookies if
+        valid
       parameters:
       - description: Email and 2FA code
         in: body
@@ -228,17 +225,17 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 2FA verification successful
           schema:
             $ref: '#/definitions/handlers.ResponseMessage'
         "400":
-          description: Invalid or expired code
+          description: Invalid code or expired code
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            type: string
+            $ref: '#/definitions/handlers.ResponseMessage'
       summary: Verify 2FA code for admin
       tags:
       - auth

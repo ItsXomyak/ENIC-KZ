@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/auth/confirm": {
             "get": {
-                "description": "Activates user account by confirmation token from query",
+                "description": "Activates a user account using the confirmation token from email",
                 "produces": [
                     "application/json"
                 ],
@@ -28,7 +28,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Confirmation token",
+                        "description": "Confirmation token from email",
                         "name": "token",
                         "in": "query",
                         "required": true
@@ -36,18 +36,15 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Account activation success message",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     },
                     "400": {
-                        "description": "Invalid or expired token",
+                        "description": "Invalid token, expired token, or already confirmed account",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     }
                 }
@@ -55,7 +52,7 @@ const docTemplate = `{
         },
         "/auth/login": {
             "post": {
-                "description": "Authenticates user and sets access and refresh JWT cookies",
+                "description": "Authenticates user and returns JWT tokens in HTTP-only cookies",
                 "consumes": [
                     "application/json"
                 ],
@@ -79,21 +76,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Login successful message",
                         "schema": {
                             "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Invalid input or missing fields",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid credentials or account not confirmed",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     }
                 }
@@ -101,7 +98,7 @@ const docTemplate = `{
         },
         "/auth/password-reset-confirm": {
             "post": {
-                "description": "Resets password using provided token",
+                "description": "Sets a new password using the provided reset token",
                 "consumes": [
                     "application/json"
                 ],
@@ -125,15 +122,15 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Password reset success message",
                         "schema": {
                             "$ref": "#/definitions/handlers.ResetPasswordResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid or expired token",
+                        "description": "Invalid token, expired token, or invalid password format",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     }
                 }
@@ -141,7 +138,7 @@ const docTemplate = `{
         },
         "/auth/password-reset-request": {
             "post": {
-                "description": "Sends password reset instructions to email",
+                "description": "Sends password reset instructions to the provided email address",
                 "consumes": [
                     "application/json"
                 ],
@@ -165,15 +162,15 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Success message (sent regardless of email existence for security)",
                         "schema": {
                             "$ref": "#/definitions/handlers.RequestResetResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Invalid request format",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     }
                 }
@@ -205,21 +202,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Registration successful message",
                         "schema": {
                             "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Invalid input or missing fields",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     }
                 }
@@ -227,7 +224,7 @@ const docTemplate = `{
         },
         "/auth/validate": {
             "get": {
-                "description": "Returns user claims if token is valid",
+                "description": "Validates the access token from cookie and returns user claims",
                 "produces": [
                     "application/json"
                 ],
@@ -237,16 +234,16 @@ const docTemplate = `{
                 "summary": "Validate JWT token from cookie",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "User claims including user_id, role, and expiresAt",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Missing or invalid token",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     }
                 }
@@ -254,7 +251,7 @@ const docTemplate = `{
         },
         "/auth/verify-2fa": {
             "post": {
-                "description": "Checks a 2FA code and, if valid, issues JWT cookies",
+                "description": "Verifies 2FA code and issues JWT tokens in HTTP-only cookies if valid",
                 "consumes": [
                     "application/json"
                 ],
@@ -278,21 +275,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "2FA verification successful",
                         "schema": {
                             "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     },
                     "400": {
-                        "description": "Invalid or expired code",
+                        "description": "Invalid code or expired code",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.ResponseMessage"
                         }
                     }
                 }
@@ -318,9 +315,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
-                },
-                "role": {
                     "type": "string"
                 }
             }
