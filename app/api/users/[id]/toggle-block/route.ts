@@ -1,17 +1,18 @@
-import { auth } from "@clerk/nextjs"
+import { getAuth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  const { userId } = auth()
+export async function POST(request: NextRequest) {
+  const { userId } = getAuth(request)
+  
   if (!userId) {
     return new NextResponse("Unauthorized", { status: 401 })
   }
 
   try {
+    const { blocked } = await request.json()
+    
     const currentUser = await prisma.user.findUnique({
       where: { id: userId },
       select: { role: true }
@@ -50,7 +51,7 @@ export async function POST(
 
     return NextResponse.json(updatedUser)
   } catch (error) {
-    console.error("Error toggling user block status:", error)
+    console.error("Error toggling block status:", error)
     return new NextResponse("Internal Server Error", { status: 500 })
   }
 } 

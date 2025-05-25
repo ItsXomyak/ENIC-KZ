@@ -6,7 +6,7 @@ import { useAuth } from '@clerk/nextjs'
 // Интервал синхронизации в миллисекундах
 const SYNC_INTERVAL = 1000 * 60 * 5 // 5 минут
 
-export function SyncRole() {
+export default function SyncRole() {
   const { getToken } = useAuth()
   
   useEffect(() => {

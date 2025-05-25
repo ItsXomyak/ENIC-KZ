@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { useTranslation } from "../components/translation-provider"
+import { useTranslation } from "@/components/translation-provider"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 
 export const metadata: Metadata = {
