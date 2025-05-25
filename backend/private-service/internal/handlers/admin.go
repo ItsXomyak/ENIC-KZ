@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"private-service/internal/logger"
+	"private-service/internal/metrics"
 	"private-service/internal/models"
 	"private-service/internal/services"
 
@@ -75,6 +76,8 @@ func (h *AdminHandler) PromoteToAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.AdminPromotionsCounter.Inc()
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(ResponseMessage{
@@ -120,6 +123,8 @@ func (h *AdminHandler) DemoteToUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	metrics.AdminDemotionsCounter.Inc()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -167,6 +172,8 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.UserDeletionsCounter.Inc()
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(ResponseMessage{
@@ -199,6 +206,8 @@ func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.AdminListUsersCounter.Inc()
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(users)
 }
@@ -221,15 +230,17 @@ func (h *AdminHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics, err := h.adminService.GetMetrics(r.Context(), adminID)
+	systemMetrics, err := h.adminService.GetMetrics(r.Context(), adminID)
 	if err != nil {
 		logger.Error("Error getting metrics: ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	metrics.AdminMetricsRequestsCounter.Inc()
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(metrics)
+	json.NewEncoder(w).Encode(systemMetrics)
 }
 
 func getAdminIDFromContext(ctx context.Context) (uuid.UUID, error) {

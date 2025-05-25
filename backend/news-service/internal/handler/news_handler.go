@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"news-service/internal/logger"
+	"news-service/internal/metrics"
 	"news-service/internal/models"
 	"news-service/internal/service"
 )
@@ -33,6 +34,7 @@ type NewsHandler struct {
 // @Router       /news [get]
 func (h *NewsHandler) GetAll(c *gin.Context) {
 	ctx := c.Request.Context()
+	metrics.NewsGetAllCounter.Inc()
 
 	category := c.Query("category")
 	fromStr := c.Query("from")
@@ -63,6 +65,7 @@ func (h *NewsHandler) GetAll(c *gin.Context) {
 
 	newsList, err := h.service.GetAll(ctx, category, dateFrom, dateTo, limit, offset)
 	if err != nil {
+		metrics.NewsErrorCounter.WithLabelValues("get_all").Inc()
 		logger.Error("GetAll failed: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch news"})
 		return
@@ -82,10 +85,12 @@ func (h *NewsHandler) GetAll(c *gin.Context) {
 // @Router       /news/{id} [get]
 func (h *NewsHandler) GetByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
+	metrics.NewsGetByIDCounter.Inc()
 
+	id := c.Param("id")
 	n, err := h.service.GetByID(ctx, id)
 	if err != nil {
+		metrics.NewsErrorCounter.WithLabelValues("get_by_id").Inc()
 		logger.Error("GetByID failed: ", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "news not found"})
 		return
@@ -106,8 +111,11 @@ func (h *NewsHandler) GetByID(c *gin.Context) {
 // @Router       /news [post]
 func (h *NewsHandler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
+	metrics.NewsCreateCounter.Inc()
+
 	var input models.News
 	if err := c.ShouldBindJSON(&input); err != nil {
+		metrics.NewsErrorCounter.WithLabelValues("create").Inc()
 		logger.Error("Create bind JSON failed: ", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
@@ -115,6 +123,7 @@ func (h *NewsHandler) Create(c *gin.Context) {
 
 	created, err := h.service.Create(ctx, &input)
 	if err != nil {
+		metrics.NewsErrorCounter.WithLabelValues("create").Inc()
 		logger.Error("Create failed: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create news"})
 		return
@@ -136,9 +145,12 @@ func (h *NewsHandler) Create(c *gin.Context) {
 // @Router       /news/{id} [put]
 func (h *NewsHandler) Update(c *gin.Context) {
 	ctx := c.Request.Context()
+	metrics.NewsUpdateCounter.Inc()
+
 	id := c.Param("id")
 	var input models.News
 	if err := c.ShouldBindJSON(&input); err != nil {
+		metrics.NewsErrorCounter.WithLabelValues("update").Inc()
 		logger.Error("Update bind JSON failed: ", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
@@ -148,6 +160,7 @@ func (h *NewsHandler) Update(c *gin.Context) {
 
 	updated, err := h.service.Update(ctx, &input)
 	if err != nil {
+		metrics.NewsErrorCounter.WithLabelValues("update").Inc()
 		logger.Error("Update failed: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update news"})
 		return
@@ -167,8 +180,11 @@ func (h *NewsHandler) Update(c *gin.Context) {
 // @Router       /news/{id} [delete]
 func (h *NewsHandler) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
+	metrics.NewsDeleteCounter.Inc()
+
 	id := c.Param("id")
 	if err := h.service.Delete(ctx, id); err != nil {
+		metrics.NewsErrorCounter.WithLabelValues("delete").Inc()
 		logger.Error("Delete failed: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete news"})
 		return

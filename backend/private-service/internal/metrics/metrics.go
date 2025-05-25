@@ -46,6 +46,41 @@ var (
 			Help: "Total number of successful 2FA verifications",
 		},
 	)
+
+	AdminPromotionsCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "admin_service_promotions_total",
+			Help: "Total number of users promoted to admin role",
+		},
+	)
+
+	AdminDemotionsCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "admin_service_demotions_total",
+			Help: "Total number of admins demoted to user role",
+		},
+	)
+
+	UserDeletionsCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "admin_service_user_deletions_total",
+			Help: "Total number of users deleted by admins",
+		},
+	)
+
+	AdminListUsersCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "admin_service_list_users_total",
+			Help: "Total number of list users requests",
+		},
+	)
+
+	AdminMetricsRequestsCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "admin_service_metrics_requests_total",
+			Help: "Total number of metrics requests by admins",
+		},
+	)
 )
 
 func InitMetrics() {
@@ -55,4 +90,9 @@ func InitMetrics() {
 	prometheus.MustRegister(PasswordResetCompletedCounter)
 	prometheus.MustRegister(AccountConfirmationCounter)
 	prometheus.MustRegister(TwoFactorVerificationCounter)
+	prometheus.MustRegister(AdminPromotionsCounter)
+	prometheus.MustRegister(AdminDemotionsCounter)
+	prometheus.MustRegister(UserDeletionsCounter)
+	prometheus.MustRegister(AdminListUsersCounter)
+	prometheus.MustRegister(AdminMetricsRequestsCounter)
 }

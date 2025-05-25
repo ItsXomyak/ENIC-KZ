@@ -25,6 +25,7 @@ import (
 	"ticket-service/internal/infrastructure/notification/email"
 	"ticket-service/internal/infrastructure/storage/s3"
 	"ticket-service/internal/logger"
+	"ticket-service/internal/metrics"
 )
 
 // @title Ticket Service API
@@ -48,6 +49,9 @@ func main() {
 
 	// Инициализация логгера
 	logger.Init()
+
+	// Start metrics server
+	metrics.StartMetricsServer("2114")
 
 	// Инициализация подключения к базе данных
 	pool, err := pgxpool.New(context.Background(), cfg.GetDSN())

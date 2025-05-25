@@ -36,6 +36,9 @@ func SetupRouter(
 	// Эндпоинт для метрик Prometheus
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
+	// Swagger documentation
+	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Публичные маршруты
 	public := router.Group("/api/v1")
 	{

@@ -12,7 +12,11 @@ import (
 
 	"api-gateway/config"
 	_ "api-gateway/docs"
+	"api-gateway/middleware"
 	"api-gateway/services"
+	"api-gateway/services/metrics"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // @title ENIC-KZ API Gateway
@@ -27,6 +31,15 @@ import (
 // @produce json
 // @consumes json
 func main() {
+	// Initialize metrics
+	metrics.InitMetrics()
+
+	// Start health checks
+	middleware.StartHealthCheck()
+
+	// Start rate limiter cleanup
+	middleware.CleanupVisitors()
+
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "https://enic.kz"},
@@ -45,11 +58,28 @@ func main() {
 	// Set up Gin
 	gin.SetMode(gin.ReleaseMode)
 
+	// Add middlewares
+	router.Use(middleware.PrometheusMiddleware())
+	router.Use(middleware.RateLimiterMiddleware())
+
 	// Initialize services
 	services.SetupServices(router, cfg)
 
 	// Setup Swagger
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Metrics endpoint using custom registry
+	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(
+		metrics.GetRegistry(),
+		promhttp.HandlerOpts{},
+	)))
+
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
 
 	// Start server
 	port := os.Getenv("PORT")
