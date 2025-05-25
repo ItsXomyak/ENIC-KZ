@@ -3,10 +3,10 @@ package mailer
 import (
 	"fmt"
 
+	"gopkg.in/mail.v2"
+
 	"private-service/config"
 	"private-service/internal/logger"
-
-	"gopkg.in/mail.v2"
 )
 
 type Mailer interface {

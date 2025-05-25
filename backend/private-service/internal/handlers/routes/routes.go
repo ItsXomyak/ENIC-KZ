@@ -3,10 +3,10 @@ package routes
 import (
 	"net/http"
 
+	httpSwagger "github.com/swaggo/http-swagger"
+
 	"private-service/internal/handlers"
 	"private-service/internal/models"
-
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func RegisterRoutes(
@@ -17,6 +17,7 @@ func RegisterRoutes(
 ) {
 	http.HandleFunc("/api/v1/auth/register", authHandler.Register)
 	http.HandleFunc("/api/v1/auth/login", authHandler.Login)
+	http.HandleFunc("/api/v1/auth/logout", authHandler.Logout)
 	http.HandleFunc("/api/v1/auth/confirm", confirmHandler.ConfirmAccount)
 	http.HandleFunc("/api/v1/auth/password-reset-request", passwordResetHandler.RequestPasswordReset)
 	http.HandleFunc("/api/v1/auth/password-reset-confirm", passwordResetHandler.ResetPassword)

@@ -9,14 +9,13 @@ import (
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"api-gateway/config"
 	_ "api-gateway/docs"
 	"api-gateway/middleware"
 	"api-gateway/services"
 	"api-gateway/services/metrics"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // @title ENIC-KZ API Gateway
@@ -42,7 +41,7 @@ func main() {
 
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "https://enic.kz"},
+		AllowOrigins:     []string{"http://localhost:3001", "https://enic.kz"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Authorization", "Content-Type", "X-Requested-With"},
 		AllowCredentials: true,

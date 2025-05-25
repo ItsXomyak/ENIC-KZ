@@ -18,16 +18,19 @@ func AuthMiddleware(authSvc services.AuthService) func(http.HandlerFunc) http.Ha
 		return func(w http.ResponseWriter, r *http.Request) {
 			var tokenStr string
 
-			authHeader := r.Header.Get("Authorization")
-			if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
-				tokenStr = authHeader[7:]
+			// Сначала пробуем получить токен из куки
+			c, err := r.Cookie(config.AccessTokenCookieName)
+			if err == nil {
+				tokenStr = c.Value
 			} else {
-				c, err := r.Cookie(config.AccessTokenCookieName)
-				if err != nil {
+				// Если куки нет, пробуем получить токен из заголовка Authorization
+				authHeader := r.Header.Get("Authorization")
+				if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+					tokenStr = authHeader[7:]
+				} else {
 					http.Error(w, "unauthorized: missing token", http.StatusUnauthorized)
 					return
 				}
-				tokenStr = c.Value
 			}
 
 			claims, err := authSvc.ValidateToken(tokenStr)

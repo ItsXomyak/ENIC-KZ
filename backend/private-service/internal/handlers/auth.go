@@ -131,7 +131,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Path:     config.CookiePath,
 		Expires:  time.Now().Add(h.cfg.JWTExpiry),
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
 	http.SetCookie(w, &http.Cookie{
@@ -140,10 +140,42 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Path:     config.CookiePath,
 		Expires:  time.Now().Add(h.cfg.RefreshExpiry),
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ResponseMessage{Message: "Login successful"})
+}
+
+// Logout godoc
+// @Summary Log out a user
+// @Description Removes authentication cookies
+// @Tags auth
+// @Produce json
+// @Success 200 {object} ResponseMessage "Logout successful"
+// @Router /auth/logout [post]
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	// Удаляем куки, устанавливая их срок действия в прошлое
+	http.SetCookie(w, &http.Cookie{
+		Name:     config.AccessTokenCookieName,
+		Value:    "",
+		Path:     config.CookiePath,
+		Expires:  time.Now().Add(-24 * time.Hour),
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     config.RefreshTokenCookieName,
+		Value:    "",
+		Path:     config.CookiePath,
+		Expires:  time.Now().Add(-24 * time.Hour),
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ResponseMessage{Message: "Logout successful"})
 }

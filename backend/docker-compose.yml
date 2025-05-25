@@ -127,7 +127,11 @@ services:
       - private-data:/var/lib/postgresql/data
       - ./private-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-auth_db}']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-auth_db}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -147,7 +151,11 @@ services:
       - news-data:/var/lib/postgresql/data
       - ./news-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-news_db}']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-news_db}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -168,7 +176,11 @@ services:
       - ./ticket-service/migrations/000001_init.up.sql:/docker-entrypoint-initdb.d/1_init.sql:ro
       - ./ticket-service/migrations/000001_init.down.sql:/docker-entrypoint-initdb.d/2_cleanup.sql:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-ticket_db}']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-ticket_db}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -3,15 +3,19 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
+
 	"private-service/config"
 	"private-service/internal/logger"
 	"private-service/internal/metrics"
 	"private-service/internal/services"
-	"time"
+
+	"github.com/google/uuid"
 )
 
 type ValidateHandler struct {
 	AuthService services.AuthService
+	cfg        *config.Config
 }
 
 // ValidateToken godoc
@@ -34,8 +38,23 @@ func (h *AuthHandler) ValidateToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
+
+	// Получаем пользователя из базы данных
+	userID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusInternalServerError)
+		return
+	}
+
+	user, err := h.AuthService.GetUserByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusInternalServerError)
+		return
+	}
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"user_id":   claims.UserID,
+		"email":     user.Email,
 		"role":      claims.Role,
 		"expiresAt": claims.ExpiresAt.Time,
 	})
@@ -85,7 +104,7 @@ func (h *AuthHandler) Verify2FA(w http.ResponseWriter, r *http.Request) {
 		Path:     config.CookiePath,
 		Expires:  time.Now().Add(h.cfg.JWTExpiry),
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
 	http.SetCookie(w, &http.Cookie{
@@ -94,7 +113,7 @@ func (h *AuthHandler) Verify2FA(w http.ResponseWriter, r *http.Request) {
 		Path:     config.CookiePath,
 		Expires:  time.Now().Add(h.cfg.RefreshExpiry),
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
 

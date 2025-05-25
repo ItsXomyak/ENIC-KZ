@@ -1,48 +1,25 @@
-"use client"
+'use client'
 
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
 import { useEffect } from 'react'
 
-type Role = 'admin' | 'moderator' | 'user'
+type Role = 'user' | 'admin' | 'root_admin'
 
 interface WithAuthProps {
-  requiredRoles?: Role[]
-  requireAuth?: boolean
+	requiredRoles?: Role[]
+	requireAuth?: boolean
 }
 
 export function withAuth<P extends object>(
-  WrappedComponent: React.ComponentType<P>,
-  { requiredRoles, requireAuth = true }: WithAuthProps = {}
+	WrappedComponent: React.ComponentType<P>,
+	{ requiredRoles, requireAuth = true }: WithAuthProps = {}
 ) {
-  return function WithAuthComponent(props: P) {
-    const { user, isLoading } = useAuth()
-    const router = useRouter()
+	return function WithAuthComponent(props: P) {
+		const { user, isLoading } = useAuth()
 
-    useEffect(() => {
-      if (!isLoading) {
-        // Если требуется аутентификация и пользователь не авторизован
-        if (requireAuth && !user) {
-          router.push('/login')
-          return
-        }
-
-        // Если требуются определенные роли
-        if (requiredRoles && user) {
-          const hasRequiredRole = requiredRoles.includes(user.role)
-          if (!hasRequiredRole) {
-            router.push('/')
-            return
-          }
-        }
-      }
-    }, [user, isLoading, router])
-
-    // Показываем загрузку или ничего, пока проверяем авторизацию
-    if (isLoading || (requireAuth && !user) || (requiredRoles && user && !requiredRoles.includes(user.role))) {
-      return null
-    }
-
-    return <WrappedComponent {...props} />
-  }
-} 
+		// Временно отключена вся защита - просто возвращаем компонент
+		console.log('Auth check disabled - rendering component directly')
+		return <WrappedComponent {...props} />
+	}
+}

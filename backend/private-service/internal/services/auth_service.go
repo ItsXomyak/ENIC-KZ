@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -31,6 +32,7 @@ type AuthService interface {
 	UpdateUser(ctx context.Context, user *models.User) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetAllUsers(ctx context.Context) ([]models.User, error)
+	InitRootAdmin() error
 }
 
 type authService struct {
@@ -350,4 +352,40 @@ func (s *authService) DeleteUser(ctx context.Context, id uuid.UUID) error {
 
 func (s *authService) GetAllUsers(ctx context.Context) ([]models.User, error) {
 	return s.userRepo.GetAllUsers()
+}
+
+// InitRootAdmin создает root-admin пользователя если он не существует
+func (s *authService) InitRootAdmin() error {
+	email := os.Getenv("ROOT_ADMIN_EMAIL")
+	password := os.Getenv("ROOT_ADMIN_PASSWORD")
+	enabled := os.Getenv("ROOT_ADMIN_ENABLED")
+
+	if enabled != "true" || email == "" || password == "" {
+		return nil
+	}
+
+	// Проверяем, существует ли уже root-admin
+	_, err := s.userRepo.GetUserByEmail(email)
+	if err == nil {
+		// Пользователь уже существует
+		return nil
+	}
+
+	// Создаем нового root-admin пользователя
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user := &models.User{
+		ID:           uuid.New(),
+		Email:        email,
+		PasswordHash: string(hashedPassword),
+		Role:        models.RoleRootAdmin,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	return s.userRepo.CreateUser(user)
 }

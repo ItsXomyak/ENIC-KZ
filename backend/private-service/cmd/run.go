@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"private-service/config"
 	_ "private-service/docs"
 	"private-service/internal/handlers"
@@ -13,8 +15,6 @@ import (
 	"private-service/internal/metrics"
 	"private-service/internal/repository"
 	"private-service/internal/services"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func Run() {
@@ -50,6 +50,11 @@ func Run() {
 
 	authService := services.NewAuthService(userRepo, tokenRepo, passwordResetTokenRepo, admin2FATokenRepo, cfg, smtpMailer)
 	adminService := services.NewAdminService(authService)
+
+	// Создаем root-admin пользователя при запуске
+	if err := authService.InitRootAdmin(); err != nil {
+		logger.Error("Failed to initialize root admin: ", err)
+	}
 
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	confirmHandler := handlers.NewConfirmHandler(authService)

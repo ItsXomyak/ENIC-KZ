@@ -24,54 +24,27 @@ const (
 // AuthMiddleware проверяет JWT токен и собирает метрики аутентификации
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-
-		// Проверяем наличие заголовка Authorization
-		if authHeader == "" {
+		accessToken, err := c.Cookie("access_token")
+		if err != nil || accessToken == "" {
 			metrics.AuthenticationTotal.WithLabelValues("missing_token").Inc()
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Access token cookie is required"})
 			c.Abort()
 			return
 		}
 
-		// Проверяем формат токена
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			metrics.AuthenticationTotal.WithLabelValues("invalid_format").Inc()
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization format"})
-			c.Abort()
-			return
-		}
-
-		token := parts[1]
-
-		// Проверяем валидность токена
-		if !isValidToken(token) {
+		// Проверка валидности токена (например, JWT)
+		if !isValidToken(accessToken) {
 			metrics.AuthenticationTotal.WithLabelValues("invalid_token").Inc()
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
 		}
 
-		// Токен валиден
 		metrics.AuthenticationTotal.WithLabelValues("success").Inc()
-
-		accessToken, err := c.Cookie("access_token")
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-			c.Abort()
-			return
-		}
-
-		if accessToken == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-			c.Abort()
-			return
-		}
-
 		c.Next()
 	}
 }
+
 
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
