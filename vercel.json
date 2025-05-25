@@ -1,13 +1,6 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "framework": "nextjs",
-  "env": {
-    "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/sign-in",
-    "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/sign-up",
-    "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL": "/",
-    "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL": "/"
-  }
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "nextjs"
 } 

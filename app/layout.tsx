@@ -8,7 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { LanguageProvider } from "@/components/language-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { ClerkProvider } from '@clerk/nextjs'
-import SyncRole from '@/components/SyncRole'
+import { SyncRole } from '@/components/SyncRole'
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] })
 

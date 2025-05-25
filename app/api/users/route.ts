@@ -1,12 +1,10 @@
-import { getAuth } from "@clerk/nextjs/server"
+import { auth } from "@clerk/nextjs"
 import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 // Получение списка пользователей
-export async function GET(request: NextRequest) {
-  const { userId } = getAuth(request)
-  
+export async function GET() {
+  const { userId } = auth()
   if (!userId) {
     return new NextResponse("Unauthorized", { status: 401 })
   }
