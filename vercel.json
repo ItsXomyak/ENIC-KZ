@@ -5,6 +5,8 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "env": {
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_bmVhcmJ5LXJhbS0xNy5jbGVyay5hY2NvdW50cy5kZXYk",
+    "CLERK_SECRET_KEY": "sk_test_cb0GrAdHPmZwvW6kiUL8xteTMLQTHnBra1eSeQ9ee7",
     "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/sign-in",
     "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/sign-up",
     "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL": "/",
