@@ -1,35 +1,41 @@
 "use client"
 
 import { useEffect } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 
-export default function SyncRole() {
-  const { user, isLoaded } = useUser()
-  const router = useRouter()
+// Интервал синхронизации в миллисекундах
+const SYNC_INTERVAL = 1000 * 60 * 5 // 5 минут
 
+export function SyncRole() {
+  const { getToken } = useAuth()
+  
   useEffect(() => {
-    const syncRole = async () => {
+    let timeoutId: NodeJS.Timeout
+    
+    const syncUserRole = async () => {
       try {
-        const response = await fetch('/api/sync-role')
-        if (!response.ok) throw new Error('Failed to sync role')
-        const data = await response.json()
+        const token = await getToken()
+        const response = await fetch('/api/sync-role', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         
-        // Проверяем, изменилась ли роль
-        const currentRole = user?.publicMetadata?.role
-        if (currentRole !== data.role) {
-          // Если роль изменилась, обновляем страницу
-          router.refresh()
+        if (!response.ok) {
+          console.warn('Ошибка синхронизации роли:', await response.text())
+          return
         }
-      } catch (error) {
-        console.error('Error syncing role:', error)
+        
+        const result = await response.json()
+        console.debug('Роль успешно синхронизирована:', result)
+      } catch (err) {
+        console.error('Ошибка при синхронизации роли:', err)
+      } finally {
+        timeoutId = setTimeout(syncUserRole, SYNC_INTERVAL)
       }
     }
 
-    if (isLoaded && user) {
-      syncRole()
-    }
-  }, [user, isLoaded, router])
+    syncUserRole()
+    return () => clearTimeout(timeoutId)
+  }, [getToken])
 
   return null
 } 
