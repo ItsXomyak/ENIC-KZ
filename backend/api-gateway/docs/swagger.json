@@ -76,7 +76,7 @@
     "definitions": {
         "RegisterRequest": {
             "type": "object",
-            "required": ["email", "password", "first_name", "last_name"],
+            "required": ["email", "password"],
             "properties": {
                 "email": {
                     "type": "string",
@@ -85,14 +85,6 @@
                 "password": {
                     "type": "string",
                     "example": "strongPassword123"
-                },
-                "first_name": {
-                    "type": "string",
-                    "example": "John"
-                },
-                "last_name": {
-                    "type": "string",
-                    "example": "Doe"
                 }
             }
         },
@@ -130,14 +122,6 @@
                 "email": {
                     "type": "string",
                     "example": "user@example.com"
-                },
-                "first_name": {
-                    "type": "string",
-                    "example": "John"
-                },
-                "last_name": {
-                    "type": "string",
-                    "example": "Doe"
                 },
                 "role": {
                     "type": "string",

@@ -627,8 +627,6 @@ definitions:
     required:
       - email
       - password
-      - first_name
-      - last_name
     properties:
       email:
         type: string
@@ -636,12 +634,6 @@ definitions:
       password:
         type: string
         example: strongPassword123
-      first_name:
-        type: string
-        example: John
-      last_name:
-        type: string
-        example: Doe
   LoginRequest:
     type: object
     required:
@@ -671,12 +663,6 @@ definitions:
       email:
         type: string
         example: user@example.com
-      first_name:
-        type: string
-        example: John
-      last_name:
-        type: string
-        example: Doe
       role:
         type: string
         example: user

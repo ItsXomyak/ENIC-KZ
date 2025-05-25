@@ -61,7 +61,6 @@ type AuthConfig struct {
 	JWTSecret string
 }
 
-// LoadConfig загружает конфигурацию из переменных окружения
 func LoadConfig() (*Config, error) {
 	v := viper.New()
 	v.AutomaticEnv()
@@ -109,7 +108,6 @@ func LoadConfig() (*Config, error) {
 	return config, nil
 }
 
-// Получение DSN для подключения к базе
 func (c *Config) GetDSN() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.Database.Host,

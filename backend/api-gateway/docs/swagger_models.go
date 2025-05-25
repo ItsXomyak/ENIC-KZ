@@ -2,10 +2,8 @@ package docs
 
 // RegisterRequest represents the registration request body
 type RegisterRequest struct {
-	Email     string `json:"email" example:"user@example.com"`
-	Password  string `json:"password" example:"strongPassword123"`
-	FirstName string `json:"first_name" example:"John"`
-	LastName  string `json:"last_name" example:"Doe"`
+	Email    string `json:"email" example:"user@example.com"`
+	Password string `json:"password" example:"strongPassword123"`
 }
 
 // LoginRequest represents the login request body
@@ -38,8 +36,6 @@ type DemoteToUserRequest struct {
 type User struct {
 	ID        uint   `json:"id" example:"1"`
 	Email     string `json:"email" example:"user@example.com"`
-	FirstName string `json:"first_name" example:"John"`
-	LastName  string `json:"last_name" example:"Doe"`
 	Role      string `json:"role" example:"user"`
 	CreatedAt string `json:"created_at" example:"2024-01-01T00:00:00Z"`
 }

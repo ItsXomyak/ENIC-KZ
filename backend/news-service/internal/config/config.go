@@ -7,10 +7,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config holds service configuration loaded from environment or .env file.
 type Config struct {
-	ServicePort string // port for the service
-	HTTPAddr    string // HTTP listen address
+	ServerPort string
+	HTTPAddr   string
 
 	DBHost     string
 	DBPort     string
@@ -48,8 +47,8 @@ func Load() *Config {
 	r := fmt.Sprintf("%s:%s", host, portR)
 
 	return &Config{
-		ServicePort: port,
-		HTTPAddr:    httpAddr,
+		ServerPort: port,
+		HTTPAddr:   httpAddr,
 
 		DBHost:     viper.GetString("DB_HOST"),
 		DBPort:     viper.GetString("DB_PORT"),
