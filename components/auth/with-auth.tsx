@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/components/auth-provider'
+import { useUser } from '@clerk/nextjs'
 import { useEffect } from 'react'
 
 type Role = 'admin' | 'moderator' | 'user'
@@ -16,30 +16,32 @@ export function withAuth<P extends object>(
   { requiredRoles, requireAuth = true }: WithAuthProps = {}
 ) {
   return function WithAuthComponent(props: P) {
-    const { user, isLoading } = useAuth()
+    const { user, isLoaded } = useUser()
     const router = useRouter()
 
     useEffect(() => {
-      if (!isLoading) {
+      if (isLoaded) {
         // Если требуется аутентификация и пользователь не авторизован
         if (requireAuth && !user) {
-          router.push('/login')
+          router.push('/sign-in')
           return
         }
 
         // Если требуются определенные роли
         if (requiredRoles && user) {
-          const hasRequiredRole = requiredRoles.includes(user.role)
+          // Получаем роль из публичных метаданных пользователя
+          const userRole = user.publicMetadata.role as Role
+          const hasRequiredRole = requiredRoles.includes(userRole)
           if (!hasRequiredRole) {
             router.push('/')
             return
           }
         }
       }
-    }, [user, isLoading, router])
+    }, [user, isLoaded, router])
 
     // Показываем загрузку или ничего, пока проверяем авторизацию
-    if (isLoading || (requireAuth && !user) || (requiredRoles && user && !requiredRoles.includes(user.role))) {
+    if (!isLoaded || (requireAuth && !user) || (requiredRoles && user && !requiredRoles.includes(user.publicMetadata.role as Role))) {
       return null
     }
 

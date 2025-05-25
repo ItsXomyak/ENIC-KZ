@@ -15,19 +15,21 @@ import {
 } from "@/components/ui/navigation-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Search, Menu, Globe, Sun, Moon, User, Phone } from "lucide-react"
+import { Search, Menu, Globe, Sun, Moon, Phone } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 import { useLanguage } from "@/components/language-provider"
-import { useAuth } from "@/components/auth-provider"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser, useClerk } from "@clerk/nextjs"
 
 export default function Header() {
   const { theme, setTheme } = useTheme()
   const { language, setLanguage, t } = useLanguage()
-  const { user, logout } = useAuth()
+  const { user } = useUser()
+  const { signOut } = useClerk()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const userRole = user?.publicMetadata.role as string
 
   const copyPhoneToClipboard = () => {
     const phoneNumber = "+7 (123) 456-7890"
@@ -112,34 +114,62 @@ export default function Header() {
               <span className="sr-only">{t("toggle_theme")}</span>
             </Button>
 
-            {user ? (
+            <SignedOut>
+              <div className="flex items-center gap-2">
+                <SignInButton mode="modal">
+                  <Button variant="ghost" size="sm">
+                    {t("login")}
+                  </Button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <Button variant="outline" size="sm">
+                    {t("register")}
+                  </Button>
+                </SignUpButton>
+              </div>
+            </SignedOut>
+            <SignedIn>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 gap-1">
-                    <User className="h-4 w-4" />
-                    <span className="hidden md:inline">{t("my_account")}</span>
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <UserButton afterSignOutUrl="/" />
+                    <span className="hidden md:inline">{user?.fullName}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="z-50">
-                  <DropdownMenuItem>
-                    <Link href="/account">{t("my_account")}</Link>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      Мой профиль
+                    </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link href="/account/applications">{t("my_applications")}</Link>
-                  </DropdownMenuItem>
-                  {(user.role === "admin" || user.role === "moderator") && (
-                    <DropdownMenuItem>
-                      <Link href="/admin">{t("admin_panel")}</Link>
+                  {userRole === "admin" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                        Панель администратора
+                      </Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={logout}>{t("logout")}</DropdownMenuItem>
+                  {(userRole === "admin" || userRole === "moderator") && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/moderator">
+                        Панель модератора
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem asChild>
+                    <Link href="/questions">
+                      Вопросы и ответы
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-red-500 focus:text-red-500" 
+                    onClick={() => signOut()}
+                  >
+                    Выйти
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <Button variant="outline" size="sm" className="h-8" asChild>
-                <Link href="/login">{t("login")}</Link>
-              </Button>
-            )}
+            </SignedIn>
           </div>
         </div>
 
@@ -196,9 +226,11 @@ export default function Header() {
           <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
               <NavigationMenuItem>
-                <Link href="/" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>{t("home")}</NavigationMenuLink>
-                </Link>
+                <NavigationMenuLink asChild>
+                  <Link href="/" className={navigationMenuTriggerStyle()}>
+                    {t("home")}
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuTrigger>{t("recognition")}</NavigationMenuTrigger>
@@ -206,13 +238,13 @@ export default function Header() {
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                     <li className="row-span-3">
                       <NavigationMenuLink asChild>
-                        <a
-                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                        <Link
                           href="/recognition"
+                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
                         >
                           <div className="mb-2 mt-4 text-lg font-medium">{t("recognition_services")}</div>
                           <p className="text-sm leading-tight text-muted-foreground">{t("recognition_description")}</p>
-                        </a>
+                        </Link>
                       </NavigationMenuLink>
                     </li>
                     <ListItem href="/recognition/types" title={t("types_of_recognition")}>
@@ -228,24 +260,32 @@ export default function Header() {
                 </NavigationMenuContent>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link href="/accreditation" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>{t("accreditation")}</NavigationMenuLink>
-                </Link>
+                <NavigationMenuLink asChild>
+                  <Link href="/accreditation" className={navigationMenuTriggerStyle()}>
+                    {t("accreditation")}
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link href="/bologna" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>{t("bologna")}</NavigationMenuLink>
-                </Link>
+                <NavigationMenuLink asChild>
+                  <Link href="/bologna" className={navigationMenuTriggerStyle()}>
+                    {t("bologna")}
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link href="/news" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>{t("news")}</NavigationMenuLink>
-                </Link>
+                <NavigationMenuLink asChild>
+                  <Link href="/news" className={navigationMenuTriggerStyle()}>
+                    {t("news")}
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link href="/contact" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>{t("contact")}</NavigationMenuLink>
-                </Link>
+                <NavigationMenuLink asChild>
+                  <Link href="/contact" className={navigationMenuTriggerStyle()}>
+                    {t("contact")}
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
@@ -258,12 +298,12 @@ export default function Header() {
   )
 }
 
-const ListItem = React.forwardRef<React.ElementRef<"a">, React.ComponentPropsWithoutRef<"a">>(
+const ListItem = React.forwardRef<React.ElementRef<typeof Link>, React.ComponentPropsWithoutRef<typeof Link>>(
   ({ className, title, children, ...props }, ref) => {
     return (
       <li>
         <NavigationMenuLink asChild>
-          <a
+          <Link
             ref={ref}
             className={cn(
               "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
@@ -273,7 +313,7 @@ const ListItem = React.forwardRef<React.ElementRef<"a">, React.ComponentPropsWit
           >
             <div className="text-sm font-medium leading-none">{title}</div>
             <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
-          </a>
+          </Link>
         </NavigationMenuLink>
       </li>
     )

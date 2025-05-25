@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://neondb_owner:npg_8gWKAhLwV3Nn@ep-rough-band-a2z1nu13-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+}
+
+model User {
+  id        String    @id
+  email     String    @unique
+  role      Role      @default(USER)
+  status    Status    @default(ACTIVE)
+  createdAt DateTime  @default(now())
+  questions Question[]
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String?
+  status    QuestionStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  files     File[]
+}
+
+model File {
+  id          String    @id @default(cuid())
+  filename    String
+  path        String
+  mimetype    String
+  size        Int
+  scanStatus  ScanStatus @default(PENDING)
+  scanResult  String?
+  createdAt   DateTime  @default(now())
+  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId  String
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum Status {
+  ACTIVE
+  BLOCKED
+}
+
+enum QuestionStatus {
+  PENDING
+  ANSWERED
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  ERROR
+} 

@@ -6,8 +6,9 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { ThemeProvider } from "@/components/theme-provider"
 import { LanguageProvider } from "@/components/language-provider"
-import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { ClerkProvider } from '@clerk/nextjs'
+import SyncRole from '@/components/SyncRole'
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] })
 
@@ -23,21 +24,22 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system">
-          <LanguageProvider>
-            <AuthProvider>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body className={inter.className}>
+          <SyncRole />
+          <ThemeProvider attribute="class" defaultTheme="system">
+            <LanguageProvider>
               <div className="flex min-h-screen flex-col">
                 <Header />
                 <main className="flex-1">{children}</main>
                 <Footer />
                 <Toaster />
               </div>
-            </AuthProvider>
-          </LanguageProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+            </LanguageProvider>
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

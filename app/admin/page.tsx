@@ -21,6 +21,7 @@ import {
 import { MessageSquare, Users, Trash2, Ban } from "lucide-react"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { withAuth } from '@/components/auth/with-auth'
+import { QuestionsList } from "@/components/questions-list"
 
 interface Question {
   id: string
@@ -40,11 +41,7 @@ interface User {
 }
 
 function AdminPage() {
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
-  const [answerText, setAnswerText] = useState("")
-
-  // Mock data
-  const questions: Question[] = [
+  const [questions, setQuestions] = useState<Question[]>([
     {
       id: "1",
       userEmail: "user1@example.com",
@@ -60,9 +57,9 @@ function AdminPage() {
       status: "answered",
       createdAt: "2024-01-18",
     },
-  ]
+  ])
 
-  const users: User[] = [
+  const [users, setUsers] = useState<User[]>([
     {
       id: "1",
       email: "user1@example.com",
@@ -84,25 +81,24 @@ function AdminPage() {
       status: "blocked",
       createdAt: "2024-01-01",
     },
-  ]
+  ])
 
-  const handleAnswerQuestion = (question: Question) => {
-    setSelectedQuestion(question)
-    setAnswerText(question.answer || "")
+  const handleAnswerQuestion = async (questionId: string, answer: string) => {
+    // В реальном приложении здесь будет API запрос
+    setQuestions(questions.map(q =>
+      q.id === questionId
+        ? { ...q, answer, status: "answered" as const }
+        : q
+    ))
   }
 
-  const submitAnswer = () => {
-    if (selectedQuestion && answerText.trim()) {
-      // Handle answer submission logic
-      alert("Ответ отправлен")
-      setSelectedQuestion(null)
-      setAnswerText("")
-    }
-  }
-
-  const handleBlockUser = (userId: string) => {
-    // Handle user blocking logic
-    alert("Пользователь заблокирован")
+  const handleBlockUser = async (userId: string) => {
+    // В реальном приложении здесь будет API запрос
+    setUsers(users.map(u =>
+      u.id === userId
+        ? { ...u, status: u.status === "active" ? "blocked" : "active" }
+        : u
+    ))
   }
 
   const handleDeleteUser = (userId: string) => {
@@ -128,29 +124,102 @@ function AdminPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Панель администратора</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Управление пользователями</h2>
-          <p className="text-gray-600 dark:text-gray-300">
-            Управление пользователями, ролями и правами доступа
-          </p>
-        </div>
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Статистика</h2>
-          <p className="text-gray-600 dark:text-gray-300">
-            Просмотр статистики и аналитики
-          </p>
-        </div>
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Настройки системы</h2>
-          <p className="text-gray-600 dark:text-gray-300">
-            Управление настройками и конфигурацией системы
-          </p>
-        </div>
-      </div>
+      
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="users" className="gap-2">
+            <Users className="h-4 w-4" />
+            Пользователи
+          </TabsTrigger>
+          <TabsTrigger value="questions" className="gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Вопросы
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Управление пользователями</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Роль</TableHead>
+                    <TableHead>Статус</TableHead>
+                    <TableHead>Дата регистрации</TableHead>
+                    <TableHead>Действия</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === "admin" ? "destructive" : user.role === "moderator" ? "default" : "secondary"}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.status === "active" ? "default" : "destructive"}>
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Ban className="h-4 w-4 mr-1" />
+                              {user.status === "active" ? "Заблокировать" : "Разблокировать"}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {user.status === "active" ? "Заблокировать пользователя" : "Разблокировать пользователя"}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Вы уверены, что хотите {user.status === "active" ? "заблокировать" : "разблокировать"} пользователя {user.email}?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Отмена</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleBlockUser(user.id)}>
+                                Подтвердить
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="questions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Вопросы пользователей</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <QuestionsList
+                questions={questions}
+                canAnswer={true}
+                onAnswer={handleAnswerQuestion}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
 
-// Оборачиваем компонент в HOC с требованием роли администратора
-export default withAuth(AdminPage, { requiredRoles: ['admin'] })
+// Оборачиваем компонент в HOC с требованием роли админа
+export default withAuth(AdminPage, { requiredRoles: ["admin"] })

@@ -2,14 +2,15 @@
 
 import { useParams } from 'next/navigation'
 import { withAuth } from '@/components/auth/with-auth'
-import { useAuth } from '@/components/auth-provider'
+import { useUser } from '@clerk/nextjs'
 
 function ProfilePage() {
   const { id } = useParams()
-  const { user } = useAuth()
+  const { user } = useUser()
 
   // Проверяем, имеет ли пользователь доступ к этому профилю
-  const canViewProfile = user?.id === id || user?.role === 'admin' || user?.role === 'moderator'
+  const userRole = user?.publicMetadata.role as string
+  const canViewProfile = user?.id === id || userRole === 'admin' || userRole === 'moderator'
 
   if (!canViewProfile) {
     return (
@@ -34,15 +35,15 @@ function ProfilePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Email:</label>
-                <p className="mt-1">{user?.email}</p>
+                <p className="mt-1">{user?.emailAddresses[0]?.emailAddress}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Имя:</label>
-                <p className="mt-1">{user?.name}</p>
+                <p className="mt-1">{user?.fullName}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Роль:</label>
-                <p className="mt-1">{user?.role}</p>
+                <p className="mt-1">{userRole}</p>
               </div>
             </div>
           </div>

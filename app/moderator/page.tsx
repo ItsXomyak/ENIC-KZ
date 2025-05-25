@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { MessageSquare, Users, Ban } from "lucide-react"
 import { withAuth } from '@/components/auth/with-auth'
+import { QuestionsList } from "@/components/questions-list"
 
 interface Question {
   id: string
@@ -39,11 +39,7 @@ interface User {
 }
 
 function ModeratorPage() {
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
-  const [answerText, setAnswerText] = useState("")
-
-  // Mock data
-  const questions: Question[] = [
+  const [questions, setQuestions] = useState<Question[]>([
     {
       id: "1",
       userEmail: "user1@example.com",
@@ -59,9 +55,9 @@ function ModeratorPage() {
       status: "answered",
       createdAt: "2024-01-18",
     },
-  ]
+  ])
 
-  const users: User[] = [
+  const [users, setUsers] = useState<User[]>([
     {
       id: "1",
       email: "user1@example.com",
@@ -90,67 +86,131 @@ function ModeratorPage() {
       status: "active",
       createdAt: "2024-01-01",
     },
-  ]
+  ])
 
-  const handleAnswerQuestion = (question: Question) => {
-    setSelectedQuestion(question)
-    setAnswerText(question.answer || "")
+  const handleAnswerQuestion = async (questionId: string, answer: string) => {
+    // В реальном приложении здесь будет API запрос
+    setQuestions(questions.map(q =>
+      q.id === questionId
+        ? { ...q, answer, status: "answered" as const }
+        : q
+    ))
   }
 
-  const submitAnswer = () => {
-    if (selectedQuestion && answerText.trim()) {
-      // Handle answer submission logic
-      alert("Ответ отправлен")
-      setSelectedQuestion(null)
-      setAnswerText("")
-    }
+  const handleBlockUser = async (userId: string) => {
+    // В реальном приложении здесь будет API запрос
+    setUsers(users.map(u =>
+      u.id === userId
+        ? { ...u, status: u.status === "active" ? "blocked" : "active" }
+        : u
+    ))
   }
 
-  const handleBlockUser = (userId: string) => {
-    // Handle user blocking logic
-    alert("Пользователь заблокирован")
-  }
-
+  // Модераторы могут банить только обычных пользователей
   const canBlockUser = (user: User) => {
-    // Модераторы не могут блокировать других модераторов и администраторов
-    return user.role === "user" && user.status === "active"
-  }
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "destructive"
-      case "moderator":
-        return "default"
-      default:
-        return "secondary"
-    }
-  }
-
-  const getStatusBadgeVariant = (status: string) => {
-    return status === "active" ? "default" : "destructive"
+    return user.role === "user"
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Панель модератора</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Модерация контента</h2>
-          <p className="text-gray-600 dark:text-gray-300">
-            Проверка и модерация пользовательского контента
-          </p>
-        </div>
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Отчеты</h2>
-          <p className="text-gray-600 dark:text-gray-300">
-            Просмотр отчетов о нарушениях
-          </p>
-        </div>
-      </div>
+      
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="users" className="gap-2">
+            <Users className="h-4 w-4" />
+            Пользователи
+          </TabsTrigger>
+          <TabsTrigger value="questions" className="gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Вопросы
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Управление пользователями</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Роль</TableHead>
+                    <TableHead>Статус</TableHead>
+                    <TableHead>Дата регистрации</TableHead>
+                    <TableHead>Действия</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.filter(user => user.role === "user").map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.status === "active" ? "default" : "destructive"}>
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {canBlockUser(user) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                <Ban className="h-4 w-4 mr-1" />
+                                {user.status === "active" ? "Заблокировать" : "Разблокировать"}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  {user.status === "active" ? "Заблокировать пользователя" : "Разблокировать пользователя"}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Вы уверены, что хотите {user.status === "active" ? "заблокировать" : "разблокировать"} пользователя {user.email}?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleBlockUser(user.id)}>
+                                  Подтвердить
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="questions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Вопросы пользователей</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <QuestionsList
+                questions={questions}
+                canAnswer={true}
+                onAnswer={handleAnswerQuestion}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
 
-// Оборачиваем компонент в HOC с требованием роли модератора или администратора
 export default withAuth(ModeratorPage, { requiredRoles: ['moderator', 'admin'] })
