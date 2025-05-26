@@ -173,6 +173,9 @@ export default function Header() {
                   <Link href="/" className="py-2 hover:text-primary">
                     {t("home")}
                   </Link>
+                  <Link href="/about" className="py-2 hover:text-primary">
+                    {t("about_center")}
+                  </Link>
                   <Link href="/recognition" className="py-2 hover:text-primary">
                     {t("recognition")}
                   </Link>
@@ -198,6 +201,13 @@ export default function Header() {
               <NavigationMenuItem>
                 <Link href="/" legacyBehavior passHref>
                   <NavigationMenuLink className={navigationMenuTriggerStyle()}>{t("home")}</NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link href="/about" legacyBehavior passHref>
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    {t("about_center")}
+                  </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
               <NavigationMenuItem>

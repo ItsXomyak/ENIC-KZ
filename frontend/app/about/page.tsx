@@ -1,72 +1,91 @@
-import type { Metadata } from "next"
-import { useTranslation } from "../components/translation-provider"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
+// app/about/page.tsx
+"use client"
 
-export const metadata: Metadata = {
-  title: "About Us | Education Center",
-  description: "Learn about the Education Center, our mission, vision, and team.",
-}
+import { useLanguage } from "@/components/language-provider"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import { Home } from "lucide-react"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 export default function AboutPage() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <Breadcrumb
-        items={[
-          { label: "Home", href: "/" },
-          { label: "About Us", href: "/about", active: true },
-        ]}
-      />
-
-      <AboutContent />
-    </div>
-  )
-}
-
-function AboutContent() {
-  const { t, language } = useTranslation()
+  const { language, t, leaders } = useLanguage()
 
   return (
-    <div className="max-w-4xl mx-auto mt-8">
-      <h1 className="text-3xl font-bold mb-6">{t("about.title")}</h1>
+    <div className="container mx-auto px-4 py-8 space-y-12">
+      {/* Хлебные крошки */}
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/${language}`}>
+              <Home className="h-4 w-4" />
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/${language}/about`}>
+              {t("about_center")}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
-      <section className="mb-10">
-        <h2 className="text-2xl font-semibold mb-4">{t("about.mission.title")}</h2>
-        <p className="text-lg mb-4">{t("about.mission.description")}</p>
+      {/* История */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold">{t("about_history")}</h2>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <p key={i}>{t(`about_history_p${i}`)}</p>
+        ))}
       </section>
 
-      <section className="mb-10">
-        <h2 className="text-2xl font-semibold mb-4">{t("about.vision.title")}</h2>
-        <p className="text-lg mb-4">{t("about.vision.description")}</p>
+      {/* Миссия */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold">{t("about_mission")}</h2>
+        <p>{t("about_mission_text")}</p>
       </section>
 
-      <section className="mb-10">
-        <h2 className="text-2xl font-semibold mb-4">{t("about.team.title")}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-          {[1, 2, 3, 4, 5, 6].map((index) => (
-            <div key={index} className="bg-card rounded-lg p-6 shadow-md">
-              <div className="w-24 h-24 rounded-full bg-muted mx-auto mb-4"></div>
-              <h3 className="text-xl font-medium text-center">{t(`about.team.member${index}.name`)}</h3>
-              <p className="text-center text-muted-foreground">{t(`about.team.member${index}.position`)}</p>
-              <p className="mt-4 text-center">{t(`about.team.member${index}.bio`)}</p>
-            </div>
+      {/* Руководящий состав */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold">{t("about_leadership")}</h2>
+        <Accordion type="single" collapsible className="w-full">
+          {leaders.map((l, idx) => (
+            <AccordionItem value={`leader-${idx}`} key={idx}>
+              <AccordionTrigger className="font-medium">
+                {l.name} — {l.position}
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3">
+                <p>
+                  <strong>{t("about_contact")}:</strong> {l.contact}
+                </p>
+                <p>
+                  <strong>{t("about_education")}:</strong>
+                </p>
+                <ul className="list-disc pl-6 space-y-1">
+                  {l.education.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ul>
+                <p>
+                  <strong>{t("about_experience")}:</strong>
+                </p>
+                <ul className="list-disc pl-6 space-y-1">
+                  {l.experience.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
-      </section>
-
-      <section className="mb-10">
-        <h2 className="text-2xl font-semibold mb-4">{t("about.history.title")}</h2>
-        <p className="text-lg mb-4">{t("about.history.description")}</p>
-
-        <div className="mt-6 space-y-6">
-          {[2018, 2019, 2020, 2021, 2022, 2023].map((year) => (
-            <div key={year} className="flex">
-              <div className="flex-shrink-0 w-16 font-bold">{year}</div>
-              <div className="flex-grow">
-                <p>{t(`about.history.timeline.${year}`)}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        </Accordion>
       </section>
     </div>
   )
