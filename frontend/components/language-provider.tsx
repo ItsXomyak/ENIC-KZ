@@ -22,6 +22,7 @@ type Leader = {
   name: string
   position: string
   contact: string
+  photo: string
   education: string[]
   experience: string[]
   leaders: Leader[]
@@ -33,6 +34,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "КУАНГАНОВ ФАРХАД ШАЙМУРАТОВИЧ",
       position: "Директор",
       contact: "f.kuanganov@n-k.kz",
+      photo: "/images/leaders/kuanganov.png",
       education: [
         "Магистр государственного управления (MRA), Национальный институт политических исследований (GRIPS), Токио (2001–2002)",
         "Национальная Высшая Школа госуправления при Президенте РК (1996)",
@@ -67,6 +69,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "ИРГЕБАЕВ ЕРЖАН ТУРСЫНХАНУЛЫ",
       position: "Заместитель директора",
       contact: "y.irgebayev@n-k.kz",
+      photo: "/images/leaders/irgebayev.png",
       education: [
         "Восточно-Казахстанский гос. техн. ун-т им. Д. Серикбаева (1998)",
         "Восточно-Казахстанский гос. ун-т (2004)",
@@ -88,6 +91,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "МАДИБЕКОВ АЛИБЕК СЕРГАЗЫЕВИЧ",
       position: "Заместитель директора",
       contact: "a.madibekov@n-k.kz",
+      photo: "/images/leaders/madibekov.png",
       education: [
         "Международный казахско-турецкий ун-т им. А. Яссауи, PhD, юриспруденция",
         "Eurasian National University им. Л. Н. Гумилёва, юриспруденция",
@@ -106,6 +110,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "НҰРЛАНОВ ШЫНҒЫС НҰРЛАНҰЛЫ",
       position: "Заместитель директора",
       contact: "sh.nurlanov@n-k.kz",
+      photo: "/images/leaders/nurlanov.png",
       education: [
         "Программа «Болашак» — Univ. of Washington (2010)",
         "Назарбаев Университет, магистр управления образованием (2019)",
@@ -126,6 +131,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "НУРМАГАМБЕТОВ АМАНТАЙ АБИЛХАИРОВИЧ",
       position: "Советник директора",
       contact: "a.nurmagambetov@n-k.kz",
+      photo: "/images/leaders/nurmagambetov.png",
       education: [
         "КазГУ им. С. М. Кирова, физика (1974)",
         "Аспирантура МГУ им. М. В. Ломоносова (1983)",
@@ -141,6 +147,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "ҚУАҢҒАНОВ ФАРХАД ШАЙМҰРАТҰЛЫ",
       position: "Директор",
       contact: "f.kuanganov@n-k.kz",
+      photo: "/images/leaders/kuanganov.png",
       education: [
         "Мемлекеттік басқару магистрі (MRA), Саяси зерттеулер ұлттық институты (GRIPS), Токио (2001–2002)",
         "Қазақстан Республикасы Президенті жанындағы Мемлекеттік басқару ұлттық жоғары мектебі (1996)",
@@ -175,6 +182,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "ІРГЕБАЕВ ЕРЖАН ТҰРСЫНХАНҰЛЫ",
       position: "Директордың орынбасары",
       contact: "y.irgebayev@n-k.kz",
+      photo: "/images/leaders/irgebayev.png",
       education: [
         "Д. Серікбаев атындағы ШҚМТУ (1998)",
         "ШҚМУ (2004)",
@@ -196,6 +204,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "МӘДІБЕКОВ ӘЛІБЕК СЕРҒАЗЫҰЛЫ",
       position: "Директордың орынбасары",
       contact: "a.madibekov@n-k.kz",
+      photo: "/images/leaders/madibekov.png",
       education: [
         "А. Яссауи атындағы ХҚТУ, PhD, құқық",
         "Л. Гумилев атындағы ЕҰУ, құқық",
@@ -214,6 +223,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "НҰРЛАНҰЛЫ ШЫНҒЫС НҰРЛАНҰЛЫ",
       position: "Директордың орынбасары",
       contact: "sh.nurlanov@n-k.kz",
+      photo: "/images/leaders/nurlanov.png",
       education: [
         "«Болашақ» бағдарламасы — Вашингтон университеті (2010)",
         "Назарбаев Университеті, білім беру менеджменті магистрі (2019)",
@@ -234,6 +244,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "НҰРМАҒАМБЕТОВ АМАНТАЙ ӘБІЛХАЙЫРҰЛЫ",
       position: "Директордың кеңесшісі",
       contact: "a.nurmagambetov@n-k.kz",
+      photo: "/images/leaders/nurmagambetov.png",
       education: [
         "С. М. Киров атындағы ҚазМУ, физика (1974)",
         "М. В. Ломоносов атындағы ММУ аспирантурасы (1983)",
@@ -247,6 +258,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "KUANGANOV FARHAD SHAIMURATOVICH",
       position: "Director",
       contact: "f.kuanganov@n-k.kz",
+      photo: "/images/leaders/kuanganov.png",
       education: [
         "Master of Public Administration (MPA), GRIPS, Tokyo (2001–2002)",
         "National Higher School of Public Administration under the President of the Republic of Kazakhstan (1996)",
@@ -281,6 +293,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "IRGEBAEV YERZHAN TURSYNKHANULY",
       position: "Deputy Director",
       contact: "y.irgebayev@n-k.kz",
+      photo: "/images/leaders/irgebayev.png",
       education: [
         "East Kazakhstan Technical University named after D. Serikbayev (1998)",
         "East Kazakhstan State University (2004)",
@@ -302,6 +315,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "MADIBEKOV ALIBEK SERGAZIEVICH",
       position: "Deputy Director",
       contact: "a.madibekov@n-k.kz",
+      photo: "/images/leaders/madibekov.png",
       education: [
         "International Kazakh-Turkish University named after A. Yassawi, PhD in Law",
         "Eurasian National University named after L.N. Gumilyov, Law",
@@ -320,6 +334,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "NURLANOV SHYNGYS NURLANULY",
       position: "Deputy Director",
       contact: "sh.nurlanov@n-k.kz",
+      photo: "/images/leaders/nurlanov.png",
       education: [
         "Bolashak Program — University of Washington (2010)",
         "Nazarbayev University, MA in Educational Leadership (2019)",
@@ -340,6 +355,7 @@ const leadersByLang: Record<Language, Leader[]> = {
       name: "NURMAGAMBETOV AMANTAI ABILKHAIROVICH",
       position: "Advisor to the Director",
       contact: "a.nurmagambetov@n-k.kz",
+      photo: "/images/leaders/nurmagambetov.png",
       education: [
         "Kazakh State University named after S.M. Kirov, Physics (1974)",
         "Postgraduate Studies, Moscow State University named after M.V. Lomonosov (1983)",

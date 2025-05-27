@@ -16,6 +16,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import Image from "next/image"
+
 
 export default function AboutPage() {
   const { language, t, leaders } = useLanguage()
@@ -62,6 +64,17 @@ export default function AboutPage() {
               <AccordionTrigger className="font-medium">
                 {l.name} — {l.position}
               </AccordionTrigger>
+              {l.photo && (
+                <div className="w-32 h-32 relative">
+                  <Image
+                    src={l.photo}
+                    alt={l.name}
+                    layout="fill"
+                    objectFit="cover"
+                    className="rounded-full border"
+                  />
+                </div>
+              )}
               <AccordionContent className="space-y-3">
                 <p>
                   <strong>{t("about_contact")}:</strong> {l.contact}
