@@ -444,9 +444,9 @@ const translations: Translations = {
     faq_q_appeal: "Шешімге шағымдануға бола ма?",
     faq_a_appeal: "Иә, шешім шыққаннан кейін 30 күн ішінде апелляция беруге болады.",
     frequently_asked_questions: "Жиі қойылатын сұрақтар",
-    faq_description: "Тану, аккредитация және қызметтеріміз бойынша жиі қойылатын сұрақтардың жауабын табыңыз.",
-    still_have_questions: "Сұрақтарыңыз қалды ма?",
-    contact_us_for_more_info: "Егер сұраққа жауап таппасаңыз, бізге хабарласыңыз — көмектесуге дайынбыз.",
+    faq_description_id: "Тану, аккредитация және қызметтеріміз бойынша жиі қойылатын сұрақтардың жауабын табыңыз.",
+    still_have_questions_id: "Сұрақтарыңыз қалды ма?",
+    contact_us_for_more_info_id: "Егер сұраққа жауап таппасаңыз, бізге хабарласыңыз — көмектесуге дайынбыз.",
 
     // Quick links
     recognition_database: "Тану дерекқоры",
@@ -478,7 +478,7 @@ const translations: Translations = {
     read_more: "Толығырақ оқу",
 
     // CTA section
-    ready_to_get_started: "Бастауға дайынсыз ба?",
+    ready_to_start: "Бастауға дайынсыз ба?",
     cta_description:
       "Шетелдік білім беру құжаттарын тану немесе мекемеңізге аккредитация қызметтері қажет болса, біз көмектесуге дайынмыз.",
     apply_for_recognition: "Тануға өтініш беру",
@@ -740,8 +740,8 @@ const translations: Translations = {
     faq_a_appeal: "Да, вы можете подать апелляцию в течение 30 дней после получения решения.",
     frequently_asked_questions: "Часто задаваемые вопросы",
     faq_description_id: "Найдите ответы на часто задаваемые вопросы о признании, аккредитации и наших услугах.",
-    still_have_questions: "Остались вопросы?",
-    contact_us_for_more_info: "Если вы не нашли ответа, свяжитесь с нами — мы с радостью поможем.",
+    still_have_questions_id: "Остались вопросы?",
+    contact_us_for_more_info_id: "Если вы не нашли ответа, свяжитесь с нами — мы с радостью поможем.",
 
     // Quick links
     recognition_database: "База данных признания",
@@ -774,7 +774,7 @@ const translations: Translations = {
     read_more: "Читать далее",
 
     // CTA section
-    ready_to_get_started: "Готовы начать?",
+    ready_to_start: "Готовы начать?",
     cta_description:
       "Независимо от того, нужно ли вам признание иностранных документов об образовании или услуги аккредитации для вашего учреждения, мы готовы помочь.",
     apply_for_recognition: "Подать заявление на признание",
@@ -1030,8 +1030,8 @@ const translations: Translations = {
     faq_a_appeal: "Yes, you can submit an appeal within 30 days of receiving the decision.",
     frequently_asked_questions: "Frequently Asked Questions",
     faq_description_id: "Find answers to common questions about recognition, accreditation, and our services.",
-    still_have_questions: "Still have questions?",
-    contact_us_for_more_info: "If you didn’t find your answer, contact us — we’re here to help.",
+    still_have_questions_id: "Still have questions?",
+    contact_us_for_more_info_id: "If you didn’t find your answer, contact us — we’re here to help.",
 
     // Quick links
     recognition_database: "Recognition Database",
@@ -1064,7 +1064,7 @@ const translations: Translations = {
     read_more: "Read More",
 
     // CTA section
-    ready_to_get_started: "Ready to Get Started?",
+    ready_to_start: "Ready to Get Started?",
     cta_description:
       "Whether you need recognition of your foreign education documents or accreditation services for your institution, we're here to help.",
     apply_for_recognition: "Apply for Recognition",

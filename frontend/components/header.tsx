@@ -148,7 +148,7 @@ export default function Header() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <div className="relative h-12 w-12">
-                <Image src="/placeholder.svg?height=48&width=48" alt="Logo" width={48} height={48} />
+                <Image src="/logo.svg?height=48&width=48" alt="Logo" width={48} height={48} />
               </div>
               <div>
                 <div className="font-bold text-xl text-blue-600 dark:text-blue-400">{t("education_center")}</div>

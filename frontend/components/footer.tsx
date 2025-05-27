@@ -19,7 +19,7 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <div className="relative h-10 w-10">
                 <Image
-                  src="/placeholder.svg?height=40&width=40"
+                  src="/logo.svg?height=40&width=40"
                   alt="Logo"
                   width={40}
                   height={40}
@@ -151,7 +151,7 @@ export default function Footer() {
           <div className="flex items-center mt-4 md:mt-0">
             <div className="flex items-center gap-2">
               <Image
-                src="/placeholder.svg?height=30&width=30"
+                src="/bologna.svg?height=30&width=30"
                 alt="Bologna Process"
                 width={30}
                 height={30}
