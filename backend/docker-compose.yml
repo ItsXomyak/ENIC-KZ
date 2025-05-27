@@ -97,21 +97,25 @@ services:
       - enic-network
 
   # Grafana
-  # grafana:
-  #   image: grafana/grafana:latest
-  #   container_name: enic-grafana
-  #   ports:
-  #     - '3000:3000'
-  #   environment:
-  #     - GF_SECURITY_ADMIN_USER=admin
-  #     - GF_SECURITY_ADMIN_PASSWORD=admin
-  #     - GF_USERS_ALLOW_SIGN_UP=false
-  #   volumes:
-  #     - grafana-data:/var/lib/grafana
-  #   depends_on:
-  #     - prometheus
-  #   networks:
-  #     - enic-network
+  grafana:
+    image: grafana/grafana:latest
+    container_name: enic-grafana
+    ports:
+      - '3002:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=a7791635
+      - GF_SECURITY_ADMIN_PASSWORD=19732805
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_AUTH_ANONYMOUS_ORG_ID=1
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - enic-network
 
   # Databases
   private-db:
