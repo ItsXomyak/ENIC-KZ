@@ -11,7 +11,7 @@ export function HeroSection() {
   return (
     <section className="relative hero-section text-white py-16 md:py-24 overflow-hidden">
       <div className="absolute inset-0 opacity-10">
-        <Image src="/placeholder.svg?height=800&width=1600" alt="Background pattern" fill className="object-cover" />
+        <Image src="/hero.svg?height=800&width=1600" alt="Background pattern" fill className="object-cover" />
       </div>
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-3xl">
