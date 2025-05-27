@@ -20,15 +20,15 @@ type AdminHandler struct {
 
 // Request structs for Swagger documentation
 type PromoteToAdminRequest struct {
-	UserID string `json:"userId"`
+	UserID string `json:"userID"`
 }
 
 type DemoteToUserRequest struct {
-	AdminID string `json:"adminId"`
+	AdminID string `json:"adminID"`
 }
 
 type DeleteUserRequest struct {
-	UserID string `json:"userId"`
+	UserID string `json:"userID"`
 }
 
 func NewAdminHandler(adminService *services.AdminService) *AdminHandler {

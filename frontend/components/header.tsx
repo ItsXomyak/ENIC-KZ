@@ -127,7 +127,7 @@ export default function Header() {
                   <DropdownMenuItem>
                     <Link href="/account/applications">{t("my_applications")}</Link>
                   </DropdownMenuItem>
-                  {(user.role === "admin" || user.role === "moderator") && (
+                  {(user.role === "admin" || user.role === "root_admin") && (
                     <DropdownMenuItem>
                       <Link href="/admin">{t("admin_panel")}</Link>
                     </DropdownMenuItem>

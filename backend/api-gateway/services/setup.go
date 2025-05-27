@@ -126,7 +126,7 @@ func SetupServices(router *gin.Engine, cfg *config.Config) {
 			adminGroup.GET("/users", adminProxy)
 			adminGroup.GET("/metrics", adminProxy)
 			adminGroup.POST("/promote", adminProxy)
-			adminGroup.POST("/users/delete", adminProxy)
+			adminGroup.DELETE("/users/delete", adminProxy)
 		}
 
 		// Routes only for root_admin

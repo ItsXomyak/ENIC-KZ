@@ -10,7 +10,7 @@ import (
 
 const (
 	// AuthCookieName имя куки с JWT токеном
-	AuthCookieName = "auth_token"
+	AuthCookieName = "access_token"
 )
 
 // Claims представляет структуру JWT токена
@@ -48,4 +48,4 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	return &result, nil
-} 
+}

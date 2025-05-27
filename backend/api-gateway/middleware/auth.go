@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 
 	"api-gateway/config"
@@ -13,6 +14,7 @@ import (
 type Claims struct {
 	UserID string `json:"user_id"`
 	Role   string `json:"role"`
+	jwt.StandardClaims
 }
 
 const (
@@ -21,30 +23,39 @@ const (
 	RoleRootAdmin = "root_admin"
 )
 
-// AuthMiddleware проверяет JWT токен и собирает метрики аутентификации
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		accessToken, err := c.Cookie("access_token")
-		if err != nil || accessToken == "" {
-			metrics.AuthenticationTotal.WithLabelValues("missing_token").Inc()
+		tokenStr, err := c.Cookie("access_token")
+		if err != nil || tokenStr == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Access token cookie is required"})
 			c.Abort()
 			return
 		}
 
-		// Проверка валидности токена (например, JWT)
-		if !isValidToken(accessToken) {
-			metrics.AuthenticationTotal.WithLabelValues("invalid_token").Inc()
+		// Парсим и валидируем токен
+		token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+			return []byte(cfg.JWTSecret), nil
+		})
+		if err != nil || !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
 		}
 
-		metrics.AuthenticationTotal.WithLabelValues("success").Inc()
+		// Извлекаем claims
+		claims := token.Claims.(*Claims)
+
+		// Засетим флаги, чтобы AdminOnly видел их
+		isAdmin := claims.Role == RoleAdmin || claims.Role == RoleRootAdmin
+		isRoot := claims.Role == RoleRootAdmin
+
+		c.Set("claims", claims)
+		c.Set("isAdmin", isAdmin)
+		c.Set("isRootAdmin", isRoot)
+
 		c.Next()
 	}
 }
-
 
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {

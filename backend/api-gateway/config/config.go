@@ -11,6 +11,7 @@ type Config struct {
 	AuthService   ServiceConfig
 	NewsService   ServiceConfig
 	TicketService ServiceConfig
+	JWTSecret     string
 }
 
 func LoadConfig() *Config {
@@ -27,6 +28,8 @@ func LoadConfig() *Config {
 			Host: getEnv("TICKET_SERVICE_HOST", "localhost"),
 			Port: getEnv("TICKET_SERVICE_PORT", "8082"),
 		},
+
+		JWTSecret: getEnv("JWT_SECRET", "your-default-secret"),
 	}
 }
 

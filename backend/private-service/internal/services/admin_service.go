@@ -26,7 +26,6 @@ func NewAdminService(authService AuthService) *AdminService {
 	}
 }
 
-// PromoteToAdmin promotes a user to admin role
 func (s *AdminService) PromoteToAdmin(ctx context.Context, adminID, userID uuid.UUID) error {
 	admin, err := s.authService.GetUserByID(ctx, adminID)
 	if err != nil {
@@ -40,8 +39,6 @@ func (s *AdminService) PromoteToAdmin(ctx context.Context, adminID, userID uuid.
 	user, err := s.authService.GetUserByID(ctx, userID)
 	if err != nil {
 		if err == ErrUserNotFound {
-			// Create new user with admin role if doesn't exist
-			// This should be implemented in the auth service
 			return err
 		}
 		return err

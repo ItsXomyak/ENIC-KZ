@@ -1,7 +1,7 @@
 package config
 
 const (
-	AccessTokenCookieName  = "auth_token"
+	AccessTokenCookieName  = "access_token"
 	RefreshTokenCookieName = "refresh_token"
 	CookiePath             = "/"
 )

@@ -15,7 +15,6 @@ import (
 
 type ValidateHandler struct {
 	AuthService services.AuthService
-	cfg        *config.Config
 }
 
 // ValidateToken godoc

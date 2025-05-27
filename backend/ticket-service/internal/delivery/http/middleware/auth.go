@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	authCookieName = "auth_token"
+	authCookieName = "access_token"
 	userIDKey      = "userID"
 	isAdminKey     = "isAdmin"
 )
