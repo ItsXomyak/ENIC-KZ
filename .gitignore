@@ -21,4 +21,5 @@ go.work.sum
 # env file
 .env
 .node_modules/
+.env.local
 
