@@ -1,10 +1,4 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Home } from "lucide-react"
 import RecognitionForm from "@/components/recognition/recognition-form"
@@ -15,19 +9,10 @@ import RecognitionLegal from "@/components/recognition/recognition-legal"
 export default function RecognitionPage() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <Breadcrumb className="mb-6">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">
-              <Home className="h-4 w-4" />
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/recognition">Recognition</BreadcrumbLink>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <Breadcrumb items={[
+        { label: "Главная", href: "/" },
+        { label: "Recognition", href: "/recognition" }
+      ]} />
 
       <div className="mb-12">
         <h1 className="text-4xl font-bold mb-4">Recognition of Foreign Education Documents</h1>
