@@ -20,7 +20,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/components/auth-provider'
 import { useToast } from '@/components/ui/use-toast'
 
+
+
+
 export default function LoginPage() {
+	const [loginErrorMessage, setLoginErrorMessage] = useState<string>('');
+	const [registerErrorMessage, setRegisterErrorMessage] = useState<string>('');
 	const router = useRouter()
 	const { login, register } = useAuth()
 	const { toast } = useToast()
@@ -54,6 +59,7 @@ export default function LoginPage() {
 
 	const handleLoginSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
+		setLoginErrorMessage('');
 
 		// Reset errors
 		setErrors({
@@ -92,27 +98,24 @@ export default function LoginPage() {
 					description: 'You have been logged in successfully.',
 				})
 				router.push('/')
-				router.refresh() // Обновляем страницу, чтобы обновить состояние авторизации
+				router.refresh()
 			} else {
-				toast({
-					title: 'Login failed',
-					description: 'Invalid email or password. Please try again.',
-					variant: 'destructive',
-				})
+				setLoginErrorMessage('Неверный логин или пароль');
 			}
-		} catch (error) {
-			toast({
-				title: 'Login failed',
-				description: 'An error occurred. Please try again.',
-				variant: 'destructive',
-			})
+		} catch (error: any) {
+			if (error.response?.status === 404) {
+				setLoginErrorMessage('Аккаунт с таким email не найден');
+			} else {
+				setLoginErrorMessage('Ошибка сервера, попробуйте позже');
+			}
 		} finally {
-			setIsLoading(false)
+			setIsLoading(false);
 		}
 	}
 
 	const handleRegisterSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
+		setRegisterErrorMessage('');
 
 		// Reset errors
 		setErrors({
@@ -147,7 +150,7 @@ export default function LoginPage() {
 				...prev,
 				register: {
 					...prev.register,
-					password: 'Password must be at least 6 characters',
+					password: 'Password must be at least 8 characters',
 				},
 			}))
 			isValid = false
@@ -178,20 +181,16 @@ export default function LoginPage() {
 				})
 				router.push('/login') // Редиректим на страницу логина после успешной регистрации
 			} else {
-				toast({
-					title: 'Registration failed',
-					description: 'An error occurred. Please try again.',
-					variant: 'destructive',
-				})
+				setRegisterErrorMessage('Не удалось зарегистрироваться');
 			}
-		} catch (error) {
-			toast({
-				title: 'Registration failed',
-				description: 'An error occurred. Please try again.',
-				variant: 'destructive',
-			})
+		} catch (error: any) {
+			if (error.response?.status === 409) {
+				setRegisterErrorMessage('Пользователь с таким email уже существует');
+			} else {
+				setRegisterErrorMessage('Ошибка сервера, попробуйте позже');
+			}
 		} finally {
-			setIsLoading(false)
+			setIsLoading(false);
 		}
 	}
 
@@ -259,6 +258,9 @@ export default function LoginPage() {
 										{isLoading ? 'Logging in...' : 'Login'}
 									</Button>
 								</form>
+								{loginErrorMessage && (
+									<p className="mt-2 text-sm text-red-500">{loginErrorMessage}</p>
+								)}
 							</CardContent>
 							<CardFooter className='flex justify-center'>
 								<div className='text-sm text-gray-500'>
@@ -347,6 +349,9 @@ export default function LoginPage() {
 										{isLoading ? 'Registering...' : 'Register'}
 									</Button>
 								</form>
+								{registerErrorMessage && (
+									<p className="mt-2 text-sm text-red-500">{registerErrorMessage}</p>
+								)}
 							</CardContent>
 							<CardFooter className='flex justify-center'>
 								<div className='text-sm text-gray-500'>
